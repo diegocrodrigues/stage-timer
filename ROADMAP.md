@@ -12,19 +12,45 @@ POC (`timer.html`) → Produto com display separado do controle.
 
 ## Padrões obrigatórios em todas as fases
 
-Cada entrega deve respeitar:
+### Design e código
 
 | Princípio | Aplicação prática |
 |---|---|
 | **SRP** | Um arquivo = uma razão pra mudar. Domínio, infra, rota e bootstrap são módulos separados. |
 | **OCP** | Novos comandos do timer entram no map `COMMAND_HANDLERS`, sem editar código existente. |
-| **DIP** | `TimerService` recebe `persistence` injetado — não importa `fileStatePersistence` diretamente. |
+| **DIP** | `TimerService` recebe dependências injetadas — não importa implementações concretas diretamente. |
 | **Clean Architecture** | Domínio não importa nada externo. Use cases não importam Express. Rotas não têm lógica de negócio. |
 | **Clean Code** | Funções com ≤ 20 linhas, nomes que descrevem intenção, sem comentários óbvios. |
 | **Imutabilidade** | Transições de estado retornam novo objeto (spread), nunca mutam o original. |
 | **Sonar / segurança** | Sem `eval`, sem concatenação SQL, sem dados do cliente no log, sem `console.log` em produção. |
 
-**Estrutura de camadas (não quebrar):**
+### Testes (obrigatórios a partir da Fase 3)
+
+| Tipo | O que cobre | Ferramenta |
+|---|---|---|
+| **Unitário** | `domain/` — funções puras isoladas | Jest |
+| **Unitário** | `usecases/` — lógica com dependências mockadas | Jest + mocks manuais |
+| **Integração** | Endpoints REST end-to-end (servidor real em memória) | Jest + Supertest |
+| **Integração** | WebSocket — connect, broadcast, reconexão | Jest + cliente `ws` |
+
+Cobertura mínima: **80% de linhas** no servidor (`server/`).  
+Rodar com: `npm test` (todos) · `npm run test:watch` (dev) · `npm run test:coverage`.
+
+### Observabilidade (obrigatória a partir da Fase 3)
+
+| Nível | Quando usar |
+|---|---|
+| `ERROR` | Exceções não tratadas, falha de persistência, erro de inicialização |
+| `WARN` | Ação inválida recebida, cliente WS fechou inesperadamente |
+| `INFO` | Startup, comando executado, cliente WS conectou/desconectou |
+| `DEBUG` | Tick do timer, estado após cada transição (apenas em dev) |
+
+- Logger: **`pino`** — JSON estruturado, sem `console.log` no código de produção.
+- Endpoint: `GET /health` → `{ status, uptime, wsConnections, timer: { status, remainingSeconds } }`.
+- Logs nunca contêm IP do cliente, conteúdo de mensagens do operador, nem dados sensíveis.
+
+### Estrutura de camadas (não quebrar)
+
 ```
 domain/      ← regras de negócio puras, sem I/O
 usecases/    ← orquestração: domínio + infra
@@ -57,83 +83,156 @@ index.js     ← bootstrap (porta, OS, wiring)
 **Objetivo:** estado do timer vive no servidor, não no browser.
 
 **Entregáveis:**
-- [x] Objeto de estado global no servidor: `{ status, mode, totalSeconds, remainingSeconds }`
+- [x] Objeto de estado: `{ status, mode, totalSeconds, remainingSeconds }`
 - [x] Endpoints REST: `GET /state`, `POST /command` (START, PAUSE, RESUME, RESET, SET_TIME)
 - [x] `setInterval` de 1s no servidor decrementa `remainingSeconds`
 - [x] Estado persiste em `data/state.json` (recupera após restart, sempre `status: stopped`)
 - [x] Arquitetura em camadas: `domain/timerState.js` · `infra/fileStatePersistence.js` · `infra/intervalTick.js` · `usecases/timerService.js` · `routes/timerRouter.js` · `app.js` · `index.js`
 
 **Qualidade desta fase:**
-- `timerState.js` — funções puras, imutáveis, sem I/O (testáveis isoladamente)
+- `timerState.js` — funções puras, imutáveis, sem I/O
 - `TimerService` — recebe `persistence` por injeção (DIP)
 - `COMMAND_HANDLERS` map — adicionar novo comando sem editar `execute()` (OCP)
-- Erros de domínio (tempo inválido, ação desconhecida) propagam via `throw` e são capturados só na rota
+- Erros de domínio propagam via `throw`, capturados só na rota
 
-**Validação:** `curl -X POST localhost:3000/command -d '{"action":"START"}'` → timer roda no servidor. `GET /state` mostra tempo decrementando.
+**Validação:** `curl -X POST localhost:3000/command -d '{"action":"START"}'` → timer roda. `GET /state` mostra tempo decrementando.
 
 ---
 
-## Fase 2 — Display sincronizado
+## Fase 2 — Display sincronizado ✅
 
 **Objetivo:** `display.html` mostra o timer em tempo real via WebSocket.
 
 **Entregáveis:**
-- [ ] `infra/wsBroadcaster.js` — gerencia conexões WS e expõe `broadcast(state)`
-- [ ] `TimerService` recebe `broadcaster` como segunda dependência injetada
-- [ ] Servidor faz broadcast do estado a cada tick (1s) e após cada comando
-- [ ] `display.html` conecta via WebSocket, exibe `remainingSeconds` formatado (MM:SS)
-- [ ] Reconexão automática no display (backoff: 2s → 5s → 10s, cap 30s)
-- [ ] Visual base: fundo preto, dígitos grandes (fonte DSEG7), sem controles visíveis
+- [x] `infra/wsBroadcaster.js` — gerencia conexões WS, expõe `broadcast(state)`
+- [x] `TimerService` recebe `onStateChange` callback injetado (DIP)
+- [x] Broadcast a cada tick e após cada comando
+- [x] `display.html` — DSEG7, MM:SS, sem controles, reconnect com backoff (2s→4s→…→30s)
+- [x] Banner "reconectando..." quando WS cai
 
 **Qualidade desta fase:**
-- `wsBroadcaster.js` em `infra/` — WebSocket é detalhe de infraestrutura, não vaza para use case
-- `TimerService` não importa `ws` diretamente — recebe interface `{ broadcast }` (DIP)
-- `display.html` lida com mensagens JSON; falha de parse é silenciosa (não trava a tela)
+- `wsBroadcaster.js` em `infra/` — WS não vaza para use case
+- `display.html` trata falha de parse silenciosamente
 
-**Validação:** iniciar timer via `curl`, ver `display.html` atualizar em tempo real na TV.
+**Validação:** iniciar timer via `curl`, ver `display.html` atualizar em tempo real.
 
 ---
 
-## Fase 3 — Painel de controle mínimo
+## Fase 3 — Testes e Observabilidade
+
+**Objetivo:** garantir qualidade das camadas já construídas e estabelecer base de testes para as próximas.
+
+### 3a — Infraestrutura de testes
+
+**Entregáveis:**
+- [ ] `jest` + `supertest` instalados como `devDependencies`
+- [ ] `jest.config.js` — cobertura em `server/`, excluindo `index.js` (bootstrap)
+- [ ] `npm test`, `npm run test:watch`, `npm run test:coverage` configurados no `package.json`
+- [ ] Diretório `tests/` espelhando `server/`: `tests/domain/`, `tests/usecases/`, `tests/integration/`
+
+### 3b — Testes unitários do domínio
+
+Arquivo: `tests/domain/timerState.test.js`
+
+- [ ] `create()` retorna estado padrão correto
+- [ ] `tick()` decrementa countdown; incrementa countup; não vai abaixo de 0; muda status para `stopped` ao zerar
+- [ ] `start()` retorna estado `running`; lança erro se countdown sem tempo; é idempotente se já running
+- [ ] `pause()` retorna `paused` só se estava `running`; é idempotente
+- [ ] `resume()` retorna `running` só se estava `paused`
+- [ ] `reset()` volta `remainingSeconds` para `totalSeconds` com status `stopped`
+- [ ] `setTime()` lança para segundos negativos ou não-numérico; modo `countdown` se > 0; `countup` se = 0
+
+### 3c — Testes unitários do use case
+
+Arquivo: `tests/usecases/timerService.test.js`
+
+- [ ] `execute('START')` chama `persistence.save` e `onStateChange`
+- [ ] `execute('PAUSE')` para o tick (mock de `IntervalTick` verifica `stop()`)
+- [ ] `execute('SET_TIME')` com segundos inválidos propaga o erro da camada de domínio
+- [ ] `execute('BORK')` lança `unknown action`
+- [ ] Na inicialização, carrega estado do `persistence.load`
+
+### 3d — Testes de integração REST
+
+Arquivo: `tests/integration/api.test.js`
+
+- [ ] `GET /state` → 200 com shape `{ status, mode, totalSeconds, remainingSeconds }`
+- [ ] `POST /command` SET_TIME + START → estado `running`
+- [ ] `POST /command` com ação inválida → 400 `{ error }`
+- [ ] `POST /command` START sem tempo definido → 400
+- [ ] Ciclo completo: SET_TIME → START → PAUSE → RESUME → RESET → estado correto em cada passo
+
+### 3e — Testes de integração WebSocket
+
+Arquivo: `tests/integration/websocket.test.js`
+
+- [ ] Cliente WS recebe estado atual imediatamente ao conectar
+- [ ] Após `POST /command START`, cliente WS recebe broadcast com `status: running`
+- [ ] Dois clientes WS conectados recebem o mesmo broadcast simultaneamente
+
+### 3f — Observabilidade
+
+**Entregáveis:**
+- [ ] `pino` instalado; `infra/logger.js` exporta instância configurada (JSON em prod, pretty em dev via `LOG_LEVEL`)
+- [ ] `index.js` loga startup (INFO): porta, IPs de rede
+- [ ] `timerRouter.js` loga cada comando recebido (INFO): `{ action, params }`
+- [ ] `wsBroadcaster.js` loga connect/disconnect (INFO): count de clientes ativos
+- [ ] `fileStatePersistence.js` loga falha de leitura/escrita (WARN), não lança
+- [ ] `GET /health` → `{ status: 'ok', uptime, wsConnections, timer: { status, remainingSeconds } }`
+- [ ] Nenhum `console.log` fora de `index.js`
+
+**Validação:**
+- `npm test` passa com ≥ 80% cobertura
+- `npm run test:coverage` gera relatório em `coverage/`
+- `curl localhost:3000/health` retorna JSON válido
+- Log em formato JSON ao rodar `NODE_ENV=production node server/index.js`
+
+---
+
+## Fase 4 — Painel de controle mínimo
 
 **Objetivo:** operador controla o timer pelo celular, sem `curl`.
 
 **Entregáveis:**
 - [ ] `control.html` com botões: **Iniciar / Pausar / Resetar**
-- [ ] Botão **Definir tempo** — abre modal com presets (5/10/15/20/30min) + input manual
+- [ ] Botão **Definir tempo** — modal com presets (5/10/15/20/30min) + input manual
 - [ ] Painel reflete estado atual via WebSocket (botão muda Iniciar ↔ Pausar)
 - [ ] Indicador de conexão (verde = conectado, vermelho = offline)
 
 **Qualidade desta fase:**
 - `control.html` nunca mantém estado local do timer — lê sempre do servidor via WS
-- Funções JS separadas por responsabilidade: `renderState()`, `sendCommand()`, `connect()`
+- Funções JS separadas: `renderState()`, `sendCommand()`, `connect()`
 - Nenhum `onclick` inline no HTML — event listeners no script
+
+**Testes desta fase:**
+- Integração: POST de cada botão resulta em estado correto via `GET /state`
 
 **Validação:** abrir `control.html` no celular e controlar `display.html` na TV. Desligar WiFi → indicador vermelho → reconectar → verde.
 
 ---
 
-## Fase 4 — Alertas visuais no display
+## Fase 5 — Alertas visuais no display
 
-**Objetivo:** display muda de cor conforme tempo restante (comportamento do POC, agora server-driven).
+**Objetivo:** display muda de cor conforme tempo restante.
 
 **Entregáveis:**
 - [ ] `timerState.js` — função pura `alertLevel(state)`: `normal` / `warning` (≤30%) / `danger` (≤20%) / `zero`
 - [ ] `alertLevel` incluído no estado broadcastado
 - [ ] Display aplica classes CSS: branco → laranja pulsante → vermelho pulsante → vermelho escalando
-- [ ] Alerta `zero` persiste até reset
-- [ ] Modo progressivo sempre `normal`
+- [ ] Alerta `zero` persiste até reset; modo progressivo sempre `normal`
 
 **Qualidade desta fase:**
-- `alertLevel` fica em `domain/timerState.js` — é regra de negócio, não visual
-- CSS usa classes semânticas (`.warning`, `.danger`, `.zero`), não estilos inline via JS
-- Transições CSS, não JS `setInterval` para animação
+- `alertLevel` em `domain/` — é regra de negócio, não visual
+- CSS usa classes semânticas, não estilos inline via JS
 
-**Validação:** definir 1 minuto → acompanhar progressão de cores em tempo real.
+**Testes desta fase:**
+- Unitário: `alertLevel()` para cada threshold e modo countup
+
+**Validação:** definir 1 minuto → progressão de cores em tempo real.
 
 ---
 
-## Fase 5 — Mensagens emergenciais
+## Fase 6 — Mensagens emergenciais
 
 **Objetivo:** operador envia mensagem para tela inteira no display.
 
@@ -142,17 +241,21 @@ index.js     ← bootstrap (porta, OS, wiring)
 - [ ] `control.html`: botão **Mensagem** → modal com quick messages + textarea
 - [ ] Quick messages: ACABOU · +5 MIN · MAIS GRAVE · MAIS AGUDO · VOLUME ↑ · VOLUME ↓ · OK ✓
 - [ ] Display: `emergencyMessage` não-nulo substitui timer por texto centralizado (fit de fonte automático)
-- [ ] Comando `SET_MESSAGE` e `CLEAR_MESSAGE` no `COMMAND_HANDLERS`
+- [ ] Comandos `SET_MESSAGE` e `CLEAR_MESSAGE` no `COMMAND_HANDLERS`
 
 **Qualidade desta fase:**
-- Texto da mensagem é sanitizado no servidor antes de broadcast (strip HTML)
-- `fitMensagem()` extraído como função pura que recebe dimensões, não lê `window` direto
+- Texto sanitizado no servidor antes de broadcast (strip HTML/tags)
+- Mensagem vazia rejeitada no domínio
+
+**Testes desta fase:**
+- Unitário: `setMessage()` rejeita string vazia; `clearMessage()` limpa o campo
+- Integração: SET_MESSAGE → broadcast contém `emergencyMessage`; CLEAR_MESSAGE → campo nulo
 
 **Validação:** enviar "ACABOU" → tela cheia no display. Voltar → timer reaparece.
 
 ---
 
-## Fase 6 — Controle de brilho e áudio remoto
+## Fase 7 — Controle de brilho e áudio remoto
 
 **Objetivo:** operador ajusta brilho da TV e alertas sonoros sem tocar no display.
 
@@ -163,19 +266,21 @@ index.js     ← bootstrap (porta, OS, wiring)
 - [ ] `display.html`: aplica `filter: brightness(x)` e toca beeps via Web Audio API
 
 **Qualidade desta fase:**
-- Lógica de beep em `display.html` encapsulada em módulo `audioAlerts` (objeto com `play(level)`)
-- Brilho validado no domínio: `setBrightness(state, value)` — `value` clampado entre 0–100
+- Lógica de beep encapsulada em objeto `audioAlerts` com `play(level)`
+- `setBrightness` valida range no domínio (clamp 0–100)
+
+**Testes desta fase:**
+- Unitário: `setBrightness()` clampado corretamente nos limites e fora deles
 
 **Validação:** ajustar brilho pelo celular → TV escurece em tempo real.
 
 ---
 
-## Fase 7 — Robustez e experiência de produção
+## Fase 8 — Robustez e experiência de produção
 
 **Objetivo:** sistema sobrevive a falhas de rede e reinicializações.
 
 **Entregáveis:**
-- [ ] Display: banner "Reconectando..." discreto ao perder WS, sem travar o timer visível
 - [ ] `control.html`: indicador mostra quantos displays estão conectados
 - [ ] Fullscreen automático no display ao carregar (fallback: botão)
 - [ ] QR code na raiz (`localhost:3000`) com URL do `/control`
@@ -183,34 +288,41 @@ index.js     ← bootstrap (porta, OS, wiring)
 
 **Qualidade desta fase:**
 - PIN verificado no servidor, não no cliente
-- QR code gerado server-side com lib `qrcode` — cliente recebe PNG, não gera no browser
+- QR code gerado server-side com `qrcode` — cliente recebe PNG
 - `CONTROL_PIN` lido via `process.env`, nunca hardcoded
+
+**Testes desta fase:**
+- Integração: `/control` sem PIN correto → 401; com PIN → 200
+- Integração: `/health` reflete `wsConnections` correto após connect/disconnect
 
 **Validação:** matar e reiniciar servidor → display reconecta em < 15s, estado preservado.
 
 ---
 
-## Fase 8 — Deploy no Raspberry Pi + Docker
+## Fase 9 — Deploy no Raspberry Pi + Docker
 
 **Objetivo:** sistema roda standalone, sem depender de outros equipamentos.
 
-**Por que Docker e não systemd puro:**
-O `Dockerfile` + `docker-compose.yml` substituem a configuração manual de Node.js no Pi.
-Um `docker compose up -d` resolve runtime, restart automático e isolamento — sem instalar Node globalmente.
-Mensageria (Kafka, RabbitMQ) foi avaliada e descartada: o projeto tem 1 processo e WebSocket já cumpre o papel de canal de mensagens em tempo real. Adicionar fila seria complexidade sem problema real a resolver.
+**Por que Docker:**
+`Dockerfile` + `docker-compose.yml` substituem configuração manual de Node.js no Pi.
+`docker compose up -d` resolve runtime, restart e isolamento sem instalar Node globalmente.
+
+**Por que sem mensageria:**
+Projeto tem 1 processo. WebSocket já é o canal de mensagens em tempo real.
+Kafka/RabbitMQ resolveriam comunicação assíncrona entre múltiplos serviços — não é o caso aqui.
 
 **Entregáveis:**
-- [ ] `Dockerfile` — imagem Node.js Alpine, expõe porta 3000, monta `/data` como volume
-- [ ] `docker-compose.yml` — serviço único com `restart: unless-stopped` e volume nomeado para persistência
-- [ ] `.dockerignore` — exclui `node_modules`, `data/`, `.git`
+- [ ] `Dockerfile` — `node:lts-alpine`, usuário não-root, expõe porta 3000
+- [ ] `docker-compose.yml` — `restart: unless-stopped`, volume nomeado para `/data`
+- [ ] `.dockerignore` — exclui `node_modules`, `data/`, `.git`, `coverage/`
+- [ ] `.env.example` — documenta `PORT`, `LOG_LEVEL`, `CONTROL_PIN`
 - [ ] `scripts/autostart` — Chromium kiosk abre `/display` no login do Pi
-- [ ] `docs/operacao.md` — como ligar, conectar no hotspot, acessar `/control`
+- [ ] `docs/operacao.md` — ligar, conectar no hotspot, acessar `/control`
 
 **Qualidade desta fase:**
-- Imagem usa `node:lts-alpine` (menor superfície de ataque)
-- Container roda como usuário não-root (`USER node`)
-- `docker-compose.yml` define `CONTROL_PIN` via `.env` (nunca hardcoded)
-- Documentação inclui QR code estático da URL do controle
+- Container não roda como root (`USER node`)
+- `CONTROL_PIN` e `LOG_LEVEL` via `.env`, nunca hardcoded
+- `docker compose up` sobe e passa `npm test` dentro do container
 
 **Validação (final):** `docker compose up -d` no Pi → TV abre display. Celular no hotspot → QR code → controla timer. 100% offline.
 
@@ -219,7 +331,7 @@ Mensageria (Kafka, RabbitMQ) foi avaliada e descartada: o projeto tem 1 processo
 ## Stack de referência
 
 ```
-emaus-timer/
+stage-timer/
 ├── server/
 │   ├── index.js                    # bootstrap
 │   ├── app.js                      # Express + rotas
@@ -228,33 +340,52 @@ emaus-timer/
 │   ├── usecases/
 │   │   └── timerService.js         # orquestração
 │   ├── infra/
+│   │   ├── logger.js               # pino (Fase 3)
 │   │   ├── fileStatePersistence.js # I/O disco
 │   │   ├── intervalTick.js         # setInterval
-│   │   └── wsBroadcaster.js        # WebSocket (Fase 2)
+│   │   └── wsBroadcaster.js        # WebSocket
 │   └── routes/
 │       └── timerRouter.js          # handlers HTTP
+├── tests/
+│   ├── domain/
+│   │   └── timerState.test.js      # Fase 3
+│   ├── usecases/
+│   │   └── timerService.test.js    # Fase 3
+│   └── integration/
+│       ├── api.test.js             # Fase 3
+│       └── websocket.test.js       # Fase 3
 ├── public/
-│   ├── display.html                # TV de palco
-│   └── control.html                # painel do operador
-├── data/
-│   └── state.json                  # gerado em runtime
-├── scripts/                        # Fase 8
-├── docs/                           # Fase 8
+│   ├── display.html
+│   └── control.html
+├── data/                           # runtime, gitignored
+├── coverage/                       # runtime, gitignored
+├── scripts/                        # Fase 9
+├── docs/                           # Fase 9
+├── .env.example
+├── jest.config.js
 ├── package.json
 └── ROADMAP.md
 ```
 
-**Dependências:**
+**Dependências de produção:**
 - `express` — servidor HTTP
 - `ws` — WebSocket
-- `qrcode` — QR code da URL de controle (Fase 7)
+- `pino` — structured logging (Fase 3)
+- `qrcode` — QR code da URL de controle (Fase 8)
+
+**Dependências de desenvolvimento:**
+- `jest` — test runner + coverage
+- `supertest` — integração HTTP sem bind de porta
+- `pino-pretty` — log legível em desenvolvimento
 
 ---
 
 ## Critérios de "pronto" por fase
 
 Cada fase só está concluída quando:
-1. Funciona em **dois dispositivos reais** na mesma rede (não só localhost)
-2. Nenhum arquivo tem mais de uma responsabilidade (SRP)
-3. Nenhuma camada interna importa camada externa (Clean Architecture)
-4. Código commitado com mensagem descritiva no padrão `feat(fase-N): ...`
+1. Funciona em **dois dispositivos reais** na mesma rede
+2. `npm test` passa com ≥ 80% cobertura (a partir da Fase 3)
+3. Nenhum arquivo tem mais de uma responsabilidade (SRP)
+4. Nenhuma camada interna importa camada externa (Clean Architecture)
+5. Nenhum `console.log` no código — apenas o logger estruturado (a partir da Fase 3)
+6. Código commitado com `feat(fase-N): ...`
