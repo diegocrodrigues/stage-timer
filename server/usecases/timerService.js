@@ -1,33 +1,39 @@
 /**
  * Use Case: TimerService
  *
- * Orchestrates domain transitions, tick scheduling, and persistence.
- * Knows nothing about Express or HTTP — pure application logic.
+ * Orchestrates domain transitions, tick scheduling, persistence, and
+ * state change notifications.
  *
- * Follows DIP: receives `persistence` as a dependency (injectable),
- * not a hardcoded import, enabling easy swapping and testing.
+ * Follows DIP: receives both `persistence` and `onStateChange` as injected
+ * dependencies — no concrete infra imports here.
  *
  * @param {{ load: Function, save: Function }} persistence
+ * @param {(state: object) => void}            onStateChange  Called after every state mutation.
  */
 const timerState   = require('../domain/timerState');
 const IntervalTick = require('../infra/intervalTick');
 
 const COMMAND_HANDLERS = {
-  START:    (state)          => timerState.start(state),
-  PAUSE:    (state)          => timerState.pause(state),
-  RESUME:   (state)          => timerState.resume(state),
-  RESET:    (state)          => timerState.reset(state),
-  SET_TIME: (state, { seconds }) => timerState.setTime(state, seconds),
+  START:    (state)               => timerState.start(state),
+  PAUSE:    (state)               => timerState.pause(state),
+  RESUME:   (state)               => timerState.resume(state),
+  RESET:    (state)               => timerState.reset(state),
+  SET_TIME: (state, { seconds })  => timerState.setTime(state, seconds),
 };
 
-function TimerService(persistence) {
+function TimerService(persistence, onStateChange = () => {}) {
   let state = persistence.load(timerState.create());
   let tick  = null;
+
+  function notifyAndSave() {
+    persistence.save(state);
+    onStateChange(state);
+  }
 
   function onTick() {
     state = timerState.tick(state);
     if (state.status === 'stopped') tick.stop();
-    persistence.save(state);
+    notifyAndSave();
   }
 
   tick = IntervalTick(onTick);
@@ -49,7 +55,7 @@ function TimerService(persistence) {
     if (shouldRun && !tick.isRunning()) tick.start();
     if (!shouldRun && wasRunning)       tick.stop();
 
-    persistence.save(state);
+    notifyAndSave();
     return state;
   }
 

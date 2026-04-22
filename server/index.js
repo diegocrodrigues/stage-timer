@@ -1,18 +1,29 @@
 /**
  * Bootstrap
  *
- * Wires dependencies and starts the HTTP server.
+ * Wires all dependencies and starts the HTTP + WebSocket server.
  * This is the only file that knows about ports, OS interfaces,
- * and the concrete persistence implementation.
+ * and concrete infrastructure implementations.
+ *
+ * Dependency order:
+ *   broadcaster declared → timerService created (captures broadcaster ref) →
+ *   broadcaster instantiated → both ready before any client connects.
  */
-const http                  = require('http');
-const os                    = require('os');
-const createApp             = require('./app');
-const TimerService          = require('./usecases/timerService');
-const fileStatePersistence  = require('./infra/fileStatePersistence');
+const http                 = require('http');
+const os                   = require('os');
+const createApp            = require('./app');
+const TimerService         = require('./usecases/timerService');
+const fileStatePersistence = require('./infra/fileStatePersistence');
+const WsBroadcaster        = require('./infra/wsBroadcaster');
 
-const timerService = TimerService(fileStatePersistence);
+// Broadcaster is assigned after server creation; the ref is captured by the
+// closure so onStateChange calls broadcaster.broadcast only after it exists.
+let broadcaster;
+
+const timerService = TimerService(fileStatePersistence, state => broadcaster.broadcast(state));
 const server       = http.createServer(createApp(timerService));
+
+broadcaster = WsBroadcaster(server, () => timerService.getState());
 
 const PORT = process.env.PORT || 3000;
 

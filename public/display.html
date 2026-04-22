@@ -2,9 +2,142 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Stage Timer — Display</title>
+  <style>
+    @font-face {
+      font-family: 'DSEG7';
+      src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2') format('woff2');
+      font-weight: bold;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000;
+      color: #fff;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    #timer {
+      font-family: 'DSEG7', 'Courier New', monospace;
+      font-weight: bold;
+      font-size: 22vw;
+      letter-spacing: 0.04em;
+      line-height: 1;
+      color: #fff;
+      -webkit-text-stroke: 3px #fff;
+      text-shadow: 0 0 4px #fff, 0 0 60px rgba(255,255,255,.15);
+      transition: color .3s, opacity .3s;
+    }
+
+    #timer.paused  { opacity: .4; }
+
+    #timer.warning {
+      color: #ffaa00;
+      -webkit-text-stroke: 3px #ffaa00;
+      text-shadow: 0 0 4px #ffaa00, 0 0 60px rgba(255,170,0,.4);
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    #timer.danger {
+      color: #ff3333;
+      -webkit-text-stroke: 3px #ff3333;
+      text-shadow: 0 0 4px #ff3333, 0 0 60px rgba(255,51,51,.5);
+      animation: pulse .5s ease-in-out infinite;
+    }
+
+    #timer.zero {
+      color: #ff1111;
+      -webkit-text-stroke: 3px #ff1111;
+      text-shadow: 0 0 10px #ff1111, 0 0 40px #ff3333, 0 0 100px rgba(255,30,30,.8);
+      animation: zero-scale 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse      { 0%,100% { opacity: 1 }    50% { opacity: .55 } }
+    @keyframes zero-scale { 0%,100% { transform: scale(1) } 50% { transform: scale(1.18) } }
+
+    #reconnecting {
+      position: fixed;
+      bottom: 2vh;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Courier New', monospace;
+      font-size: .9vw;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: #333;
+      opacity: 0;
+      transition: opacity .4s;
+      pointer-events: none;
+    }
+
+    #reconnecting.visible { opacity: 1; }
+  </style>
 </head>
 <body>
-  <h1>Display</h1>
+
+  <div id="timer">--:--</div>
+  <div id="reconnecting">reconectando...</div>
+
+  <script>
+    const timerEl        = document.getElementById('timer');
+    const reconnectingEl = document.getElementById('reconnecting');
+
+    const ALERT_CLASSES = ['paused', 'warning', 'danger', 'zero'];
+
+    const pad = n => String(n).padStart(2, '0');
+    const fmt = s => `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+
+    function applyState(state) {
+      timerEl.textContent = fmt(state.remainingSeconds);
+
+      ALERT_CLASSES.forEach(c => timerEl.classList.remove(c));
+
+      if (state.status === 'paused') {
+        timerEl.classList.add('paused');
+        return;
+      }
+
+      if (state.alertLevel) {
+        timerEl.classList.add(state.alertLevel);
+      }
+    }
+
+    // ── WebSocket with exponential backoff reconnect ──────────────────────
+
+    let retryDelay = 2000;
+    const MAX_DELAY = 30000;
+
+    function connect() {
+      const ws = new WebSocket(`ws://${location.host}`);
+
+      ws.onopen = () => {
+        retryDelay = 2000;
+        reconnectingEl.classList.remove('visible');
+      };
+
+      ws.onmessage = ({ data }) => {
+        try {
+          applyState(JSON.parse(data));
+        } catch { /* malformed message — ignore */ }
+      };
+
+      ws.onclose = () => {
+        reconnectingEl.classList.add('visible');
+        setTimeout(connect, retryDelay);
+        retryDelay = Math.min(retryDelay * 2, MAX_DELAY);
+      };
+
+      ws.onerror = () => ws.close();
+    }
+
+    connect();
+  </script>
 </body>
 </html>

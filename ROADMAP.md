@@ -190,22 +190,29 @@ index.js     ← bootstrap (porta, OS, wiring)
 
 ---
 
-## Fase 8 — Deploy no Raspberry Pi
+## Fase 8 — Deploy no Raspberry Pi + Docker
 
 **Objetivo:** sistema roda standalone, sem depender de outros equipamentos.
 
+**Por que Docker e não systemd puro:**
+O `Dockerfile` + `docker-compose.yml` substituem a configuração manual de Node.js no Pi.
+Um `docker compose up -d` resolve runtime, restart automático e isolamento — sem instalar Node globalmente.
+Mensageria (Kafka, RabbitMQ) foi avaliada e descartada: o projeto tem 1 processo e WebSocket já cumpre o papel de canal de mensagens em tempo real. Adicionar fila seria complexidade sem problema real a resolver.
+
 **Entregáveis:**
-- [ ] `scripts/setup.sh` — instala Node.js + dependências no Pi
-- [ ] `scripts/emaus-timer.service` — systemd inicia servidor no boot
-- [ ] `scripts/autostart` — Chromium kiosk abre `/display` no login
+- [ ] `Dockerfile` — imagem Node.js Alpine, expõe porta 3000, monta `/data` como volume
+- [ ] `docker-compose.yml` — serviço único com `restart: unless-stopped` e volume nomeado para persistência
+- [ ] `.dockerignore` — exclui `node_modules`, `data/`, `.git`
+- [ ] `scripts/autostart` — Chromium kiosk abre `/display` no login do Pi
 - [ ] `docs/operacao.md` — como ligar, conectar no hotspot, acessar `/control`
 
 **Qualidade desta fase:**
-- `setup.sh` é idempotente (pode rodar duas vezes sem quebrar)
-- Serviço systemd usa `Restart=on-failure` com `RestartSec=5`
+- Imagem usa `node:lts-alpine` (menor superfície de ataque)
+- Container roda como usuário não-root (`USER node`)
+- `docker-compose.yml` define `CONTROL_PIN` via `.env` (nunca hardcoded)
 - Documentação inclui QR code estático da URL do controle
 
-**Validação (final):** ligar o Pi → TV abre display. Celular no hotspot → QR code → controla timer. 100% offline.
+**Validação (final):** `docker compose up -d` no Pi → TV abre display. Celular no hotspot → QR code → controla timer. 100% offline.
 
 ---
 
