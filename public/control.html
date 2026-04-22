@@ -2,9 +2,584 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Stage Timer — Control</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Stage Timer — Controle</title>
+  <style>
+    @font-face {
+      font-family: 'DSEG7';
+      src: url('https://cdn.jsdelivr.net/npm/dseg@0.46.0/fonts/DSEG7-Classic/DSEG7Classic-Bold.woff2') format('woff2');
+      font-weight: bold;
+    }
+
+    :root {
+      --clr-bg:        #0a0a0a;
+      --clr-surface:   #141414;
+      --clr-border:    #2a2a2a;
+      --clr-text:      #e0e0e0;
+      --clr-muted:     #555;
+      --clr-green:     #00ff88;
+      --clr-orange:    #ffaa00;
+      --clr-red:       #ff3333;
+      --clr-blue:      #4488ff;
+      --clr-purple:    #cc88ff;
+      --radius:        10px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--clr-bg);
+      color: var(--clr-text);
+      font-family: 'Courier New', monospace;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px;
+      gap: 16px;
+      user-select: none;
+      overflow-x: hidden;
+    }
+
+    /* ── STATUS BAR ─────────────────────────────────────────────── */
+    #status-bar {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #connection {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--clr-muted);
+    }
+
+    #conn-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--clr-muted);
+    }
+
+    #connection.online  { color: var(--clr-green); }
+    #connection.online #conn-dot  { background: var(--clr-green); animation: blink 1.2s ease-in-out infinite; }
+    #connection.offline { color: var(--clr-red); }
+    #connection.offline #conn-dot { background: var(--clr-red); }
+
+    @keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: .3 } }
+
+    #display-count {
+      font-size: 11px;
+      letter-spacing: .1em;
+      color: var(--clr-muted);
+    }
+
+    /* ── TIMER CARD ─────────────────────────────────────────────── */
+    #timer-card {
+      width: 100%;
+      max-width: 480px;
+      background: var(--clr-surface);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius);
+      padding: 24px 16px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #timer-display {
+      font-family: 'DSEG7', 'Courier New', monospace;
+      font-weight: bold;
+      font-size: 18vw;
+      max-font-size: 86px;
+      letter-spacing: .04em;
+      line-height: 1;
+      color: var(--clr-text);
+      transition: color .3s;
+    }
+
+    @media (min-width: 480px) { #timer-display { font-size: 86px; } }
+
+    #timer-display.warning { color: var(--clr-orange); }
+    #timer-display.danger  { color: var(--clr-red); }
+    #timer-display.zero    { color: var(--clr-red); }
+    #timer-display.paused  { opacity: .5; }
+
+    #timer-status {
+      font-size: 11px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--clr-muted);
+    }
+
+    /* ── MAIN CONTROLS ──────────────────────────────────────────── */
+    #controls {
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Primary: start/pause */
+    #btn-start-pause {
+      width: 100%;
+      padding: 20px;
+      font-size: 15px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      font-family: 'Courier New', monospace;
+      border-radius: var(--radius);
+      border: 1.5px solid var(--clr-green);
+      color: var(--clr-green);
+      background: transparent;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    #btn-start-pause:active { background: rgba(0,255,136,.12); }
+    #btn-start-pause.paused-state {
+      border-color: var(--clr-orange);
+      color: var(--clr-orange);
+    }
+    #btn-start-pause.paused-state:active { background: rgba(255,170,0,.12); }
+
+    /* Secondary row */
+    #row-secondary {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .btn-secondary {
+      padding: 16px;
+      font-size: 12px;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      font-family: 'Courier New', monospace;
+      border-radius: var(--radius);
+      border: 1.5px solid var(--clr-border);
+      color: var(--clr-text);
+      background: transparent;
+      cursor: pointer;
+      transition: background .15s, border-color .15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-secondary:active { background: rgba(255,255,255,.06); }
+
+    #btn-set-time { border-color: var(--clr-blue); color: var(--clr-blue); }
+    #btn-set-time:active { background: rgba(68,136,255,.12); }
+
+    #btn-reset { border-color: var(--clr-red); color: var(--clr-red); }
+    #btn-reset:active { background: rgba(255,51,51,.08); }
+
+    #reset-progress {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 0;
+      background: rgba(255,51,51,.3);
+      pointer-events: none;
+    }
+
+    /* Message button — full width, for future phase */
+    #btn-message {
+      width: 100%;
+      padding: 14px;
+      font-size: 12px;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      font-family: 'Courier New', monospace;
+      border-radius: var(--radius);
+      border: 1.5px solid var(--clr-purple);
+      color: var(--clr-purple);
+      background: transparent;
+      cursor: pointer;
+      opacity: .35;
+      pointer-events: none; /* enabled in fase 6 */
+    }
+
+    /* ── MODAL OVERLAY ──────────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.85);
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 20;
+      padding: 0 0 16px;
+    }
+    .modal-overlay.open    { display: flex; }
+    .modal-overlay.visible { display: flex; }
+
+    .modal-sheet {
+      background: #1a1a1a;
+      border: 1px solid var(--clr-border);
+      border-radius: 16px 16px 12px 12px;
+      padding: 24px 20px 20px;
+      width: 100%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-title {
+      font-size: 12px;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      color: var(--clr-muted);
+      text-align: center;
+    }
+
+    /* Preset grid */
+    .presets {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .btn-preset {
+      padding: 14px 0;
+      font-size: 13px;
+      letter-spacing: .1em;
+      font-family: 'Courier New', monospace;
+      border-radius: 8px;
+      border: 1.5px solid #1e3a5a;
+      color: var(--clr-blue);
+      background: transparent;
+      cursor: pointer;
+    }
+    .btn-preset:active { background: rgba(68,136,255,.15); }
+
+    /* Manual input row */
+    .time-inputs {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .time-col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .time-col label { font-size: 10px; color: var(--clr-muted); letter-spacing: .15em; text-transform: uppercase; }
+
+    .time-inputs input {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid var(--clr-border);
+      color: var(--clr-text);
+      font-family: 'DSEG7', 'Courier New', monospace;
+      font-weight: bold;
+      font-size: 12vw;
+      width: 2.5ch;
+      text-align: center;
+      outline: none;
+      appearance: textfield;
+      -moz-appearance: textfield;
+      transition: border-color .2s;
+    }
+
+    @media (min-width: 480px) { .time-inputs input { font-size: 56px; } }
+
+    .time-inputs input::-webkit-outer-spin-button,
+    .time-inputs input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .time-inputs input:focus { border-color: var(--clr-blue); }
+
+    .time-sep { font-size: 10vw; color: var(--clr-muted); align-self: flex-end; margin-bottom: 6px; }
+    @media (min-width: 480px) { .time-sep { font-size: 48px; } }
+
+    /* Modal buttons */
+    .modal-actions { display: flex; gap: 10px; }
+
+    .btn-modal {
+      flex: 1;
+      padding: 16px;
+      font-size: 12px;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      font-family: 'Courier New', monospace;
+      border-radius: 8px;
+      cursor: pointer;
+      background: transparent;
+    }
+
+    .btn-cancel  { border: 1.5px solid var(--clr-border); color: var(--clr-muted); }
+    .btn-confirm { border: 1.5px solid var(--clr-green);  color: var(--clr-green); }
+    .btn-confirm:active { background: rgba(0,255,136,.12); }
+    .btn-cancel:active  { background: rgba(255,255,255,.05); }
+  </style>
 </head>
 <body>
-  <h1>Control</h1>
+
+  <!-- status bar -->
+  <div id="status-bar">
+    <div id="connection" class="offline">
+      <div id="conn-dot"></div>
+      <span id="conn-label">Offline</span>
+    </div>
+    <span id="display-count"></span>
+  </div>
+
+  <!-- timer preview card -->
+  <div id="timer-card">
+    <div id="timer-display">--:--</div>
+    <div id="timer-status">—</div>
+  </div>
+
+  <!-- controls -->
+  <div id="controls">
+    <button id="btn-start-pause">Iniciar</button>
+
+    <div id="row-secondary">
+      <button class="btn-secondary" id="btn-set-time">Definir</button>
+      <button class="btn-secondary" id="btn-reset">
+        <div id="reset-progress"></div>
+        Resetar
+      </button>
+    </div>
+
+    <button id="btn-message">Mensagem</button>
+  </div>
+
+  <!-- modal: set time -->
+  <div id="modal-time" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-title">Definir Tempo</div>
+      <div class="presets">
+        <button class="btn-preset" data-min="5">5 min</button>
+        <button class="btn-preset" data-min="10">10 min</button>
+        <button class="btn-preset" data-min="15">15 min</button>
+        <button class="btn-preset" data-min="20">20 min</button>
+        <button class="btn-preset" data-min="30">30 min</button>
+        <button class="btn-preset" data-min="45">45 min</button>
+      </div>
+      <div class="time-inputs">
+        <div class="time-col">
+          <label>min</label>
+          <input id="inp-min" type="number" min="0" max="99" value="0">
+        </div>
+        <span class="time-sep">:</span>
+        <div class="time-col">
+          <label>seg</label>
+          <input id="inp-sec" type="number" min="0" max="59" value="0">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-modal btn-cancel"  id="btn-time-cancel">Cancelar</button>
+        <button class="btn-modal btn-confirm" id="btn-time-confirm">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── utils ────────────────────────────────────────────────────────────────
+
+    const $  = id => document.getElementById(id);
+    const pad = n => String(n).padStart(2, '0');
+    const fmt = s => `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+
+    // ── DOM refs ─────────────────────────────────────────────────────────────
+
+    const connEl      = $('connection');
+    const connLabel   = $('conn-label');
+    const displayCount = $('display-count');
+    const timerEl     = $('timer-display');
+    const statusEl    = $('timer-status');
+    const btnSP       = $('btn-start-pause');
+    const btnReset    = $('btn-reset');
+    const resetProg   = $('reset-progress');
+    const modalTime   = $('modal-time');
+    const inpMin      = $('inp-min');
+    const inpSec      = $('inp-sec');
+
+    // ── state ────────────────────────────────────────────────────────────────
+
+    let currentState = null;
+
+    // ── render ───────────────────────────────────────────────────────────────
+
+    const STATUS_LABELS = {
+      stopped: 'Parado',
+      running: 'Rodando',
+      paused:  'Pausado',
+    };
+
+    function renderState(state) {
+      currentState = state;
+
+      timerEl.textContent = fmt(state.remainingSeconds);
+
+      ['warning', 'danger', 'zero', 'paused'].forEach(c => timerEl.classList.remove(c));
+      if (state.status === 'paused')      timerEl.classList.add('paused');
+      else if (state.alertLevel)          timerEl.classList.add(state.alertLevel);
+
+      statusEl.textContent = STATUS_LABELS[state.status] ?? state.status;
+
+      const isRunning = state.status === 'running';
+      const isPaused  = state.status === 'paused';
+
+      btnSP.textContent = isRunning ? 'Pausar' : isPaused ? 'Retomar' : 'Iniciar';
+      btnSP.classList.toggle('paused-state', isPaused);
+    }
+
+    // ── send command ─────────────────────────────────────────────────────────
+
+    async function sendCommand(action, params = {}) {
+      try {
+        await fetch('/command', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, ...params }),
+        });
+      } catch { /* network error — WS indicator will show offline */ }
+    }
+
+    // ── button actions ───────────────────────────────────────────────────────
+
+    btnSP.addEventListener('click', () => {
+      if (!currentState) return;
+      const action = currentState.status === 'running' ? 'PAUSE'
+                   : currentState.status === 'paused'  ? 'RESUME'
+                   : 'START';
+      sendCommand(action);
+    });
+
+    // hold-to-reset (1 second)
+    let holdTimer = null;
+
+    function holdStart() {
+      if (holdTimer) return;
+      resetProg.style.transition = 'width 1s linear';
+      resetProg.style.width = '100%';
+      holdTimer = setTimeout(() => {
+        sendCommand('RESET');
+        holdCancel(true);
+      }, 1000);
+    }
+
+    function holdCancel(done = false) {
+      clearTimeout(holdTimer);
+      holdTimer = null;
+      if (done) {
+        setTimeout(() => { resetProg.style.transition = 'none'; resetProg.style.width = '0'; }, 200);
+      } else {
+        resetProg.style.transition = 'width .15s ease';
+        resetProg.style.width = '0';
+      }
+    }
+
+    btnReset.addEventListener('pointerdown', holdStart);
+    btnReset.addEventListener('pointerup',   () => holdTimer && holdCancel());
+    btnReset.addEventListener('pointerleave',() => holdTimer && holdCancel());
+
+    // set time modal
+    $('btn-set-time').addEventListener('click', openModalTime);
+    $('btn-time-cancel').addEventListener('click',  () => closeModal(modalTime));
+    $('btn-time-confirm').addEventListener('click', confirmTime);
+    modalTime.addEventListener('click', e => { if (e.target === modalTime) closeModal(modalTime); });
+
+    document.querySelectorAll('.btn-preset').forEach(btn =>
+      btn.addEventListener('click', () => {
+        const added = parseInt(btn.dataset.min) * 60;
+        const current = (parseInt(inpMin.value) || 0) * 60 + (parseInt(inpSec.value) || 0);
+        const total = current + added;
+        inpMin.value = pad(Math.min(99, Math.floor(total / 60)));
+        inpSec.value = pad(Math.min(59, total % 60));
+      })
+    );
+
+    [inpMin, inpSec].forEach(inp => {
+      const max = inp === inpMin ? 99 : 59;
+      inp.addEventListener('blur', () => {
+        inp.value = pad(Math.min(max, Math.max(0, parseInt(inp.value) || 0)));
+      });
+      inp.addEventListener('wheel', e => {
+        e.preventDefault();
+        let v = (parseInt(inp.value) || 0) + (e.deltaY < 0 ? 1 : -1);
+        if (v < 0) v = max; if (v > max) v = 0;
+        inp.value = pad(v);
+      }, { passive: false });
+    });
+
+    inpMin.addEventListener('keydown', e => {
+      if (e.key === 'Tab' || e.key === 'Enter') { e.preventDefault(); inpSec.focus(); inpSec.select(); }
+    });
+    inpSec.addEventListener('keydown', e => {
+      if (e.key === 'Enter') confirmTime();
+    });
+
+    // ── modal helpers ─────────────────────────────────────────────────────────
+
+    function openModalTime() {
+      const sec = currentState?.remainingSeconds ?? 0;
+      inpMin.value = pad(Math.floor(sec / 60));
+      inpSec.value = pad(sec % 60);
+      modalTime.classList.add('open');
+      setTimeout(() => { inpMin.focus(); inpMin.select(); }, 80);
+    }
+
+    function closeModal(modal) {
+      modal.classList.remove('open');
+    }
+
+    function confirmTime() {
+      const m = Math.min(99, Math.max(0, parseInt(inpMin.value) || 0));
+      const s = Math.min(59, Math.max(0, parseInt(inpSec.value) || 0));
+      sendCommand('SET_TIME', { seconds: m * 60 + s });
+      closeModal(modalTime);
+    }
+
+    // ── connection indicator ──────────────────────────────────────────────────
+
+    function setOnline() {
+      connEl.className = 'online';
+      connLabel.textContent = 'Online';
+    }
+
+    function setOffline() {
+      connEl.className = 'offline';
+      connLabel.textContent = 'Offline';
+    }
+
+    // ── WebSocket connection ──────────────────────────────────────────────────
+
+    let retryDelay = 2000;
+    const MAX_DELAY = 30000;
+
+    function connect() {
+      const ws = new WebSocket(`ws://${location.host}`);
+
+      ws.onopen = () => {
+        setOnline();
+        retryDelay = 2000;
+      };
+
+      ws.onmessage = ({ data }) => {
+        try {
+          const state = JSON.parse(data);
+          renderState(state);
+          if (state.wsConnections !== undefined) {
+            displayCount.textContent = `${state.wsConnections} display${state.wsConnections !== 1 ? 's' : ''}`;
+          }
+        } catch { /* malformed — ignore */ }
+      };
+
+      ws.onclose = () => {
+        setOffline();
+        setTimeout(connect, retryDelay);
+        retryDelay = Math.min(retryDelay * 2, MAX_DELAY);
+      };
+
+      ws.onerror = () => ws.close();
+    }
+
+    connect();
+  </script>
 </body>
 </html>

@@ -189,23 +189,25 @@ Arquivo: `tests/integration/websocket.test.js`
 
 ---
 
-## Fase 4 — Painel de controle mínimo
+## Fase 4 — Painel de controle mínimo ✅
 
 **Objetivo:** operador controla o timer pelo celular, sem `curl`.
 
 **Entregáveis:**
-- [ ] `control.html` com botões: **Iniciar / Pausar / Resetar**
-- [ ] Botão **Definir tempo** — modal com presets (5/10/15/20/30min) + input manual
-- [ ] Painel reflete estado atual via WebSocket (botão muda Iniciar ↔ Pausar)
-- [ ] Indicador de conexão (verde = conectado, vermelho = offline)
+- [x] `control.html` com botões: **Iniciar / Pausar / Resetar**
+- [x] Botão **Definir tempo** — modal com presets (5/10/15/20/30min) + input manual
+- [x] Painel reflete estado atual via WebSocket (botão muda Iniciar ↔ Pausar ↔ Retomar)
+- [x] Indicador de conexão (verde pulsante = online, vermelho = offline)
+- [x] Hold-to-reset (1s) com barra de progresso visual
 
 **Qualidade desta fase:**
-- `control.html` nunca mantém estado local do timer — lê sempre do servidor via WS
-- Funções JS separadas: `renderState()`, `sendCommand()`, `connect()`
-- Nenhum `onclick` inline no HTML — event listeners no script
+- `control.html` nunca mantém estado local — lê sempre do servidor via WS
+- Funções separadas: `renderState()`, `sendCommand()`, `connect()`
+- Comandos via REST POST; estado recebido via WebSocket (separação clara)
+- Nenhum `onclick` inline — todos os listeners no script
 
 **Testes desta fase:**
-- Integração: POST de cada botão resulta em estado correto via `GET /state`
+- Ciclo completo já coberto em `tests/integration/api.test.js` (SET_TIME → START → PAUSE → RESUME → RESET)
 
 **Validação:** abrir `control.html` no celular e controlar `display.html` na TV. Desligar WiFi → indicador vermelho → reconectar → verde.
 
@@ -325,6 +327,55 @@ Kafka/RabbitMQ resolveriam comunicação assíncrona entre múltiplos serviços 
 - `docker compose up` sobe e passa `npm test` dentro do container
 
 **Validação (final):** `docker compose up -d` no Pi → TV abre display. Celular no hotspot → QR code → controla timer. 100% offline.
+
+---
+
+## Fase 10 — Documentação técnica
+
+**Objetivo:** registrar todas as decisões de arquitetura e entregar documentação final de produto — README orientado ao operador/desenvolvedor e ADRs para rastreabilidade técnica.
+
+### 10a — Architecture Decision Records (ADR)
+
+Cada ADR segue o formato: **Contexto → Decisão → Alternativas avaliadas → Consequências**.
+
+Arquivo: `docs/adr/`
+
+- [ ] `ADR-001-runtime.md` — Node.js sobre Python/Go/Deno
+- [ ] `ADR-002-realtime.md` — WebSocket sobre SSE, polling e MQTT
+- [ ] `ADR-003-hosting.md` — Rede local (Raspberry Pi) sobre cloud/VPS
+- [ ] `ADR-004-no-messaging.md` — Sem Kafka/RabbitMQ — WebSocket é suficiente
+- [ ] `ADR-005-architecture.md` — Clean Architecture sobre MVC flat
+- [ ] `ADR-006-frontend.md` — Vanilla JS sobre React/Vue para display e controle
+- [ ] `ADR-007-docker.md` — Docker sobre systemd + Node.js global no Pi
+- [ ] `ADR-008-persistence.md` — JSON file sobre SQLite/Redis para estado do timer
+- [ ] `ADR-009-testing.md` — Jest + Supertest sobre Vitest/Mocha; fake timers para use case
+
+### 10b — README.md
+
+README orientado a dois públicos: **quem opera** (músico/técnico de som) e **quem desenvolve** (contribuidor).
+
+Seções:
+
+- [ ] **Problema** — o que o POC resolvia mal (controle e display na mesma tela)
+- [ ] **Solução** — diagrama de arquitetura (Mermaid): Pi → WiFi → TV display + celular operador
+- [ ] **Stack** — tabela: camada, tecnologia, justificativa em uma linha
+- [ ] **Pré-requisitos** — Node.js 18+ / Docker + Docker Compose
+- [ ] **Instalação rápida** — `git clone` → `npm install` → `npm start` → QR code
+- [ ] **Deploy no Raspberry Pi** — `docker compose up -d`, configuração de kiosk
+- [ ] **Variáveis de ambiente** — tabela: `PORT`, `LOG_LEVEL`, `CONTROL_PIN`
+- [ ] **Troubleshooting** — tabela: sintoma → causa provável → solução
+  - Display mostra "--:--" → WS não conectou → verificar mesma rede
+  - Controle não responde → PIN errado → verificar CONTROL_PIN
+  - Timer deriva após reinício → state.json corrompido → deletar e reiniciar
+  - Sem áudio → audioEnabled = false → toggle no painel
+- [ ] **Licença**
+
+**Qualidade desta fase:**
+- Diagrama Mermaid renderiza no GitHub sem plugin externo
+- Todos os comandos do README foram testados do zero numa máquina limpa
+- ADRs têm data e autor, não apenas decisão
+
+**Validação:** alguém que nunca viu o projeto consegue rodar com apenas o README.
 
 ---
 
