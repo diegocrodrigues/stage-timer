@@ -13,7 +13,7 @@ beforeEach(() => {
 });
 
 describe('GET /state', () => {
-  it('returns 200 with correct shape', async () => {
+  it('returns 200 with correct shape including alertLevel', async () => {
     const res = await request(app).get('/state');
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({
@@ -21,7 +21,13 @@ describe('GET /state', () => {
       mode: expect.any(String),
       totalSeconds: expect.any(Number),
       remainingSeconds: expect.any(Number),
+      alertLevel: expect.any(String),
     });
+  });
+
+  it('alertLevel is normal on fresh state', async () => {
+    const res = await request(app).get('/state');
+    expect(res.body.alertLevel).toBe('normal');
   });
 });
 

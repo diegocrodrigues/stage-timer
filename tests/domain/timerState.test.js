@@ -116,6 +116,47 @@ describe('timerState.reset', () => {
   });
 });
 
+describe('timerState.alertLevel', () => {
+  it('returns normal for countup mode', () => {
+    const state = t.create({ mode: 'countup', totalSeconds: 0, remainingSeconds: 10 });
+    expect(t.alertLevel(state)).toBe('normal');
+  });
+
+  it('returns normal when totalSeconds is 0 (initial state)', () => {
+    expect(t.alertLevel(t.create())).toBe('normal');
+  });
+
+  it('returns zero when remainingSeconds reaches 0 on a countdown', () => {
+    const state = t.create({ mode: 'countdown', totalSeconds: 60, remainingSeconds: 0 });
+    expect(t.alertLevel(state)).toBe('zero');
+  });
+
+  it('returns danger at exactly 20% remaining', () => {
+    const state = t.create({ mode: 'countdown', totalSeconds: 100, remainingSeconds: 20 });
+    expect(t.alertLevel(state)).toBe('danger');
+  });
+
+  it('returns danger below 20%', () => {
+    const state = t.create({ mode: 'countdown', totalSeconds: 100, remainingSeconds: 10 });
+    expect(t.alertLevel(state)).toBe('danger');
+  });
+
+  it('returns warning at exactly 30% remaining', () => {
+    const state = t.create({ mode: 'countdown', totalSeconds: 100, remainingSeconds: 30 });
+    expect(t.alertLevel(state)).toBe('warning');
+  });
+
+  it('returns warning between 20% and 30%', () => {
+    const state = t.create({ mode: 'countdown', totalSeconds: 100, remainingSeconds: 25 });
+    expect(t.alertLevel(state)).toBe('warning');
+  });
+
+  it('returns normal above 30%', () => {
+    const state = t.create({ mode: 'countdown', totalSeconds: 100, remainingSeconds: 80 });
+    expect(t.alertLevel(state)).toBe('normal');
+  });
+});
+
 describe('timerState.setTime', () => {
   it('sets countdown mode when seconds > 0', () => {
     const state = t.setTime(t.create(), 300);

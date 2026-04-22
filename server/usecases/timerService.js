@@ -25,9 +25,18 @@ function TimerService(persistence, onStateChange = () => {}) {
   let state = persistence.load(timerState.create());
   let tick  = null;
 
+  /**
+   * Returns the public state enriched with derived fields.
+   * Raw `state` is kept minimal for persistence; derived fields
+   * are computed on read so they're always fresh and never stale.
+   */
+  function publicState() {
+    return { ...state, alertLevel: timerState.alertLevel(state) };
+  }
+
   function notifyAndSave() {
     persistence.save(state);
-    onStateChange(state);
+    onStateChange(publicState());
   }
 
   function onTick() {
@@ -39,7 +48,7 @@ function TimerService(persistence, onStateChange = () => {}) {
   tick = IntervalTick(onTick);
 
   function getState() {
-    return state;
+    return publicState();
   }
 
   function execute(action, params = {}) {
@@ -56,7 +65,7 @@ function TimerService(persistence, onStateChange = () => {}) {
     if (!shouldRun && wasRunning)       tick.stop();
 
     notifyAndSave();
-    return state;
+    return publicState();
   }
 
   return { getState, execute };

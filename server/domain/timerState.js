@@ -6,6 +6,7 @@
  *
  * @typedef {'stopped'|'running'|'paused'} TimerStatus
  * @typedef {'countdown'|'countup'}        TimerMode
+ * @typedef {'normal'|'warning'|'danger'|'zero'} AlertLevel
  * @typedef {{ status: TimerStatus, mode: TimerMode, totalSeconds: number, remainingSeconds: number }} TimerState
  */
 
@@ -75,4 +76,26 @@ function setTime(state, seconds) {
   };
 }
 
-module.exports = { create, tick, start, pause, resume, reset, setTime };
+/**
+ * Derives the visual alert level from the current timer state.
+ * Business rule lives here — not in the display.
+ *
+ * Rules (countdown only):
+ *   remaining = 0 and totalSeconds > 0  → 'zero'    (persists until RESET)
+ *   remaining / total ≤ 20%             → 'danger'
+ *   remaining / total ≤ 30%             → 'warning'
+ *   otherwise (or countup / no time)    → 'normal'
+ *
+ * @param {TimerState} state
+ * @returns {AlertLevel}
+ */
+function alertLevel(state) {
+  if (state.mode === 'countup' || state.totalSeconds === 0) return 'normal';
+  if (state.remainingSeconds === 0) return 'zero';
+  const ratio = state.remainingSeconds / state.totalSeconds;
+  if (ratio <= 0.20) return 'danger';
+  if (ratio <= 0.30) return 'warning';
+  return 'normal';
+}
+
+module.exports = { create, tick, start, pause, resume, reset, setTime, alertLevel };

@@ -213,22 +213,25 @@ Arquivo: `tests/integration/websocket.test.js`
 
 ---
 
-## Fase 5 — Alertas visuais no display
+## Fase 5 — Alertas visuais no display ✅
 
 **Objetivo:** display muda de cor conforme tempo restante.
 
 **Entregáveis:**
-- [ ] `timerState.js` — função pura `alertLevel(state)`: `normal` / `warning` (≤30%) / `danger` (≤20%) / `zero`
-- [ ] `alertLevel` incluído no estado broadcastado
-- [ ] Display aplica classes CSS: branco → laranja pulsante → vermelho pulsante → vermelho escalando
-- [ ] Alerta `zero` persiste até reset; modo progressivo sempre `normal`
+- [x] `timerState.js` — função pura `alertLevel(state)`: `normal` / `warning` (≤30%) / `danger` (≤20%) / `zero`
+- [x] `timerService.publicState()` enriquece o estado com `alertLevel` antes de broadcast e `getState()`
+- [x] Persistência armazena estado mínimo (sem `alertLevel`); clientes recebem estado derivado
+- [x] Display aplica classes CSS: branco → laranja pulsante → vermelho pulsante → vermelho escalando
+- [x] Alerta `zero` persiste até RESET; modo progressivo sempre `normal`
 
 **Qualidade desta fase:**
-- `alertLevel` em `domain/` — é regra de negócio, não visual
-- CSS usa classes semânticas, não estilos inline via JS
+- `alertLevel` em `domain/` — regra de negócio, não detalhe visual
+- CSS usa classes semânticas (`.warning`, `.danger`, `.zero`), não estilos inline via JS
+- `alertLevel` sempre fresco: computado em `getState()` e `notifyAndSave()`, nunca cacheado
 
 **Testes desta fase:**
-- Unitário: `alertLevel()` para cada threshold e modo countup
+- 8 casos unitários: todos os thresholds, countup, estado inicial, imutabilidade
+- Integração: `GET /state` inclui `alertLevel`; valor `normal` no estado inicial
 
 **Validação:** definir 1 minuto → progressão de cores em tempo real.
 
