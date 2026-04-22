@@ -7,6 +7,7 @@ describe('timerState.create', () => {
       mode: 'countdown',
       totalSeconds: 0,
       remainingSeconds: 0,
+      emergencyMessage: null,
     });
   });
 
@@ -113,6 +114,42 @@ describe('timerState.reset', () => {
     const state = t.create({ totalSeconds: 60, remainingSeconds: 20 });
     t.reset(state);
     expect(state.remainingSeconds).toBe(20);
+  });
+});
+
+describe('timerState.setMessage', () => {
+  it('sets emergencyMessage on state', () => {
+    const state = t.create();
+    expect(t.setMessage(state, 'ACABOU').emergencyMessage).toBe('ACABOU');
+  });
+
+  it('trims whitespace from message', () => {
+    expect(t.setMessage(t.create(), '  ACABOU  ').emergencyMessage).toBe('ACABOU');
+  });
+
+  it('throws for empty string', () => {
+    expect(() => t.setMessage(t.create(), '')).toThrow('message cannot be empty');
+  });
+
+  it('throws for whitespace-only string', () => {
+    expect(() => t.setMessage(t.create(), '   ')).toThrow('message cannot be empty');
+  });
+
+  it('does not mutate original state', () => {
+    const state = t.create({ emergencyMessage: null });
+    t.setMessage(state, 'TEST');
+    expect(state.emergencyMessage).toBeNull();
+  });
+});
+
+describe('timerState.clearMessage', () => {
+  it('sets emergencyMessage to null', () => {
+    const state = t.create({ emergencyMessage: 'ACABOU' });
+    expect(t.clearMessage(state).emergencyMessage).toBeNull();
+  });
+
+  it('is idempotent when already null', () => {
+    expect(t.clearMessage(t.create()).emergencyMessage).toBeNull();
   });
 });
 

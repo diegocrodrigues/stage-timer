@@ -14,11 +14,13 @@ const timerState   = require('../domain/timerState');
 const IntervalTick = require('../infra/intervalTick');
 
 const COMMAND_HANDLERS = {
-  START:    (state)               => timerState.start(state),
-  PAUSE:    (state)               => timerState.pause(state),
-  RESUME:   (state)               => timerState.resume(state),
-  RESET:    (state)               => timerState.reset(state),
-  SET_TIME: (state, { seconds })  => timerState.setTime(state, seconds),
+  START:         (state)              => timerState.start(state),
+  PAUSE:         (state)              => timerState.pause(state),
+  RESUME:        (state)              => timerState.resume(state),
+  RESET:         (state)              => timerState.reset(state),
+  SET_TIME:      (state, { seconds }) => timerState.setTime(state, seconds),
+  SET_MESSAGE:   (state, { text })    => timerState.setMessage(state, text),
+  CLEAR_MESSAGE: (state)              => timerState.clearMessage(state),
 };
 
 function TimerService(persistence, onStateChange = () => {}) {

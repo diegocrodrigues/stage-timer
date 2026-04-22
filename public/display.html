@@ -17,11 +17,16 @@
       background: #000;
       color: #fff;
       height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* ── TIMER SCREEN ────────────────────────────────────────────── */
+    #screen-timer {
+      width: 100%; height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
-      user-select: none;
     }
 
     #timer {
@@ -62,6 +67,49 @@
     @keyframes pulse      { 0%,100% { opacity: 1 }    50% { opacity: .55 } }
     @keyframes zero-scale { 0%,100% { transform: scale(1) } 50% { transform: scale(1.18) } }
 
+    /* ── MESSAGE SCREEN ──────────────────────────────────────────── */
+    #screen-message {
+      display: none;
+      width: 100%; height: 100%;
+      align-items: center;
+      justify-content: center;
+      padding: 6vw;
+      position: relative;
+    }
+
+    #screen-message.active { display: flex; }
+
+    #message-text {
+      font-weight: bold;
+      letter-spacing: .08em;
+      text-align: center;
+      line-height: 1.15;
+      color: #ff3333;
+      -webkit-text-stroke: 1px #ff3333;
+      text-shadow: 0 0 4px #ff3333, 0 0 60px rgba(255,51,51,.5);
+      animation: pulse .5s ease-in-out infinite;
+      word-break: break-word;
+    }
+
+    #btn-back {
+      position: fixed;
+      bottom: 3vh;
+      right: 2.5vw;
+      background: transparent;
+      border: 1px solid #2a3a5a;
+      color: #4488ff;
+      font-family: 'Courier New', monospace;
+      font-size: .85vw;
+      padding: .5vw 1.5vw;
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      transition: all .2s;
+    }
+    #btn-back:hover { border-color: #4488ff; background: rgba(68,136,255,.1); }
+
+    /* ── RECONNECTING INDICATOR ──────────────────────────────────── */
     #reconnecting {
       position: fixed;
       bottom: 2vh;
@@ -76,40 +124,104 @@
       transition: opacity .4s;
       pointer-events: none;
     }
-
     #reconnecting.visible { opacity: 1; }
   </style>
 </head>
 <body>
 
-  <div id="timer">--:--</div>
+  <div id="screen-timer">
+    <div id="timer">--:--</div>
+  </div>
+
+  <div id="screen-message">
+    <div id="message-text"></div>
+    <button id="btn-back">Voltar ao timer</button>
+  </div>
+
   <div id="reconnecting">reconectando...</div>
 
   <script>
-    const timerEl        = document.getElementById('timer');
-    const reconnectingEl = document.getElementById('reconnecting');
+    // ── DOM refs ──────────────────────────────────────────────────────────────
+
+    const timerEl       = document.getElementById('timer');
+    const screenTimer   = document.getElementById('screen-timer');
+    const screenMessage = document.getElementById('screen-message');
+    const messageText   = document.getElementById('message-text');
+    const reconnectEl   = document.getElementById('reconnecting');
+    const btnBack       = document.getElementById('btn-back');
 
     const ALERT_CLASSES = ['paused', 'warning', 'danger', 'zero'];
-
     const pad = n => String(n).padStart(2, '0');
     const fmt = s => `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
 
+    // ── font-fit (binary search for largest font that fits the container) ─────
+
+    function fitText(el, container) {
+      const maxW = container.clientWidth  - 80;
+      const maxH = container.clientHeight - 80;
+      let lo = 10, hi = 600;
+      while (hi - lo > 1) {
+        const mid = (lo + hi) >> 1;
+        el.style.fontSize = mid + 'px';
+        (el.scrollWidth <= maxW && el.scrollHeight <= maxH) ? (lo = mid) : (hi = mid);
+      }
+      el.style.fontSize = lo + 'px';
+    }
+
+    // ── screens ───────────────────────────────────────────────────────────────
+
+    function showTimerScreen() {
+      screenTimer.style.display   = 'flex';
+      screenMessage.classList.remove('active');
+    }
+
+    function showMessageScreen(text) {
+      messageText.textContent     = text;
+      screenTimer.style.display   = 'none';
+      screenMessage.classList.add('active');
+      fitText(messageText, screenMessage);
+    }
+
+    window.addEventListener('resize', () => {
+      if (screenMessage.classList.contains('active')) {
+        fitText(messageText, screenMessage);
+      }
+    });
+
+    // ── send command (display only clears message) ────────────────────────────
+
+    async function sendCommand(action) {
+      try {
+        await fetch('/command', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action }),
+        });
+      } catch { /* ignore — WS will reflect the result */ }
+    }
+
+    btnBack.addEventListener('click', () => sendCommand('CLEAR_MESSAGE'));
+
+    // ── render ────────────────────────────────────────────────────────────────
+
     function applyState(state) {
-      timerEl.textContent = fmt(state.remainingSeconds);
-
-      ALERT_CLASSES.forEach(c => timerEl.classList.remove(c));
-
-      if (state.status === 'paused') {
-        timerEl.classList.add('paused');
+      if (state.emergencyMessage) {
+        showMessageScreen(state.emergencyMessage);
         return;
       }
 
-      if (state.alertLevel) {
+      showTimerScreen();
+      timerEl.textContent = fmt(state.remainingSeconds);
+
+      ALERT_CLASSES.forEach(c => timerEl.classList.remove(c));
+      if (state.status === 'paused') {
+        timerEl.classList.add('paused');
+      } else if (state.alertLevel && state.alertLevel !== 'normal') {
         timerEl.classList.add(state.alertLevel);
       }
     }
 
-    // ── WebSocket with exponential backoff reconnect ──────────────────────
+    // ── WebSocket with exponential backoff reconnect ──────────────────────────
 
     let retryDelay = 2000;
     const MAX_DELAY = 30000;
@@ -119,7 +231,7 @@
 
       ws.onopen = () => {
         retryDelay = 2000;
-        reconnectingEl.classList.remove('visible');
+        reconnectEl.classList.remove('visible');
       };
 
       ws.onmessage = ({ data }) => {
@@ -129,7 +241,7 @@
       };
 
       ws.onclose = () => {
-        reconnectingEl.classList.add('visible');
+        reconnectEl.classList.add('visible');
         setTimeout(connect, retryDelay);
         retryDelay = Math.min(retryDelay * 2, MAX_DELAY);
       };

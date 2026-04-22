@@ -237,24 +237,27 @@ Arquivo: `tests/integration/websocket.test.js`
 
 ---
 
-## Fase 6 — Mensagens emergenciais
+## Fase 6 — Mensagens emergenciais ✅
 
 **Objetivo:** operador envia mensagem para tela inteira no display.
 
 **Entregáveis:**
-- [ ] `timerState.js` — `setMessage(state, text)` e `clearMessage(state)` como transições puras
-- [ ] `control.html`: botão **Mensagem** → modal com quick messages + textarea
-- [ ] Quick messages: ACABOU · +5 MIN · MAIS GRAVE · MAIS AGUDO · VOLUME ↑ · VOLUME ↓ · OK ✓
-- [ ] Display: `emergencyMessage` não-nulo substitui timer por texto centralizado (fit de fonte automático)
-- [ ] Comandos `SET_MESSAGE` e `CLEAR_MESSAGE` no `COMMAND_HANDLERS`
+- [x] `timerState.js` — `setMessage(state, text)` e `clearMessage(state)` como transições puras
+- [x] `timerRouter.js` — sanitização de HTML na fronteira HTTP (antes de chegar ao domínio)
+- [x] `control.html`: botão **Mensagem** → modal com quick messages + textarea + Ctrl+Enter
+- [x] Quick messages: ACABOU · +5 MIN · MAIS GRAVE · MAIS AGUDO · VOLUME ↑ · VOLUME ↓ · OK ✓
+- [x] Banner de mensagem ativa no painel com preview e botão Limpar
+- [x] Display: `emergencyMessage` não-nulo ocupa tela cheia com font-fit automático
+- [x] Botão "Voltar ao timer" no display envia `CLEAR_MESSAGE`
+- [x] Comandos `SET_MESSAGE` e `CLEAR_MESSAGE` no `COMMAND_HANDLERS`
 
 **Qualidade desta fase:**
-- Texto sanitizado no servidor antes de broadcast (strip HTML/tags)
-- Mensagem vazia rejeitada no domínio
+- Strip de HTML na rota (boundary) — domínio só valida lógica (não-vazio)
+- Font-fit por busca binária — sem `setInterval`, sem `requestAnimationFrame` em loop
 
 **Testes desta fase:**
-- Unitário: `setMessage()` rejeita string vazia; `clearMessage()` limpa o campo
-- Integração: SET_MESSAGE → broadcast contém `emergencyMessage`; CLEAR_MESSAGE → campo nulo
+- 6 unitários: `setMessage` (trim, vazio, whitespace, imutabilidade) + `clearMessage` (null, idempotente)
+- 4 integração: SET_MESSAGE persiste; CLEAR_MESSAGE limpa; HTML stripped; vazio → 400
 
 **Validação:** enviar "ACABOU" → tela cheia no display. Voltar → timer reaparece.
 

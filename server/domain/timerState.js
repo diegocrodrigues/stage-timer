@@ -7,7 +7,7 @@
  * @typedef {'stopped'|'running'|'paused'} TimerStatus
  * @typedef {'countdown'|'countup'}        TimerMode
  * @typedef {'normal'|'warning'|'danger'|'zero'} AlertLevel
- * @typedef {{ status: TimerStatus, mode: TimerMode, totalSeconds: number, remainingSeconds: number }} TimerState
+ * @typedef {{ status: TimerStatus, mode: TimerMode, totalSeconds: number, remainingSeconds: number, emergencyMessage: string|null }} TimerState
  */
 
 /** @returns {TimerState} */
@@ -17,6 +17,7 @@ function create(overrides = {}) {
     mode: 'countdown',
     totalSeconds: 0,
     remainingSeconds: 0,
+    emergencyMessage: null,
     ...overrides,
   };
 }
@@ -77,6 +78,30 @@ function setTime(state, seconds) {
 }
 
 /**
+ * Sets an emergency message visible on the display.
+ * Validation: text must be non-empty after trim.
+ * Sanitization (strip HTML) is done at the HTTP boundary before reaching here.
+ *
+ * @param {TimerState} state
+ * @param {string}     text
+ * @returns {TimerState}
+ */
+function setMessage(state, text) {
+  if (!text || !text.trim()) throw new Error('message cannot be empty');
+  return { ...state, emergencyMessage: text.trim() };
+}
+
+/**
+ * Clears the emergency message, returning to the timer view.
+ *
+ * @param {TimerState} state
+ * @returns {TimerState}
+ */
+function clearMessage(state) {
+  return { ...state, emergencyMessage: null };
+}
+
+/**
  * Derives the visual alert level from the current timer state.
  * Business rule lives here — not in the display.
  *
@@ -98,4 +123,4 @@ function alertLevel(state) {
   return 'normal';
 }
 
-module.exports = { create, tick, start, pause, resume, reset, setTime, alertLevel };
+module.exports = { create, tick, start, pause, resume, reset, setTime, setMessage, clearMessage, alertLevel };

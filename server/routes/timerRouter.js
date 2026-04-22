@@ -18,8 +18,15 @@ function timerRouter(timerService) {
   });
 
   router.post('/command', (req, res) => {
-    const { action, ...params } = req.body ?? {};
-    logger.info({ action, params }, 'command received');
+    let { action, ...params } = req.body ?? {};
+
+    // Sanitize message text at the HTTP boundary — strip HTML tags before
+    // passing to domain. Domain only validates (non-empty); it does not sanitize.
+    if (typeof params.text === 'string') {
+      params = { ...params, text: params.text.replace(/<[^>]*>/g, '').trim() };
+    }
+
+    logger.info({ action }, 'command received');
     try {
       const state = timerService.execute(action, params);
       res.json(state);

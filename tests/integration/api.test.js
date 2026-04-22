@@ -80,6 +80,29 @@ describe('POST /command', () => {
     expect(res.body.error).toMatch(/invalid seconds/);
   });
 
+  it('SET_MESSAGE → emergencyMessage in state', async () => {
+    const res = await request(app).post('/command').send({ action: 'SET_MESSAGE', text: 'ACABOU' });
+    expect(res.status).toBe(200);
+    expect(res.body.emergencyMessage).toBe('ACABOU');
+  });
+
+  it('CLEAR_MESSAGE → emergencyMessage is null', async () => {
+    await request(app).post('/command').send({ action: 'SET_MESSAGE', text: 'ACABOU' });
+    const res = await request(app).post('/command').send({ action: 'CLEAR_MESSAGE' });
+    expect(res.status).toBe(200);
+    expect(res.body.emergencyMessage).toBeNull();
+  });
+
+  it('SET_MESSAGE strips HTML tags', async () => {
+    const res = await request(app).post('/command').send({ action: 'SET_MESSAGE', text: '<b>ATENÇÃO</b>' });
+    expect(res.body.emergencyMessage).toBe('ATENÇÃO');
+  });
+
+  it('SET_MESSAGE with empty text → 400', async () => {
+    const res = await request(app).post('/command').send({ action: 'SET_MESSAGE', text: '' });
+    expect(res.status).toBe(400);
+  });
+
   it('full cycle: SET_TIME → START → PAUSE → RESUME → RESET', async () => {
     const post = (body) => request(app).post('/command').send(body);
 

@@ -12,17 +12,17 @@
     }
 
     :root {
-      --clr-bg:        #0a0a0a;
-      --clr-surface:   #141414;
-      --clr-border:    #2a2a2a;
-      --clr-text:      #e0e0e0;
-      --clr-muted:     #555;
-      --clr-green:     #00ff88;
-      --clr-orange:    #ffaa00;
-      --clr-red:       #ff3333;
-      --clr-blue:      #4488ff;
-      --clr-purple:    #cc88ff;
-      --radius:        10px;
+      --clr-bg:      #0a0a0a;
+      --clr-surface: #141414;
+      --clr-border:  #2a2a2a;
+      --clr-text:    #e0e0e0;
+      --clr-muted:   #555;
+      --clr-green:   #00ff88;
+      --clr-orange:  #ffaa00;
+      --clr-red:     #ff3333;
+      --clr-blue:    #4488ff;
+      --clr-purple:  #cc88ff;
+      --radius:      10px;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -41,278 +41,223 @@
       overflow-x: hidden;
     }
 
-    /* ── STATUS BAR ─────────────────────────────────────────────── */
+    /* ── STATUS BAR ──────────────────────────────────────────────── */
     #status-bar {
-      width: 100%;
-      max-width: 480px;
+      width: 100%; max-width: 480px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
 
     #connection {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      letter-spacing: .12em;
-      text-transform: uppercase;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
       color: var(--clr-muted);
     }
-
-    #conn-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--clr-muted);
-    }
-
+    #conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--clr-muted); }
     #connection.online  { color: var(--clr-green); }
-    #connection.online #conn-dot  { background: var(--clr-green); animation: blink 1.2s ease-in-out infinite; }
+    #connection.online  #conn-dot { background: var(--clr-green); animation: blink 1.2s ease-in-out infinite; }
     #connection.offline { color: var(--clr-red); }
     #connection.offline #conn-dot { background: var(--clr-red); }
-
     @keyframes blink { 0%,100% { opacity: 1 } 50% { opacity: .3 } }
 
-    #display-count {
-      font-size: 11px;
-      letter-spacing: .1em;
-      color: var(--clr-muted);
-    }
+    #display-count { font-size: 11px; letter-spacing: .1em; color: var(--clr-muted); }
 
-    /* ── TIMER CARD ─────────────────────────────────────────────── */
+    /* ── TIMER CARD ──────────────────────────────────────────────── */
     #timer-card {
-      width: 100%;
-      max-width: 480px;
+      width: 100%; max-width: 480px;
       background: var(--clr-surface);
       border: 1px solid var(--clr-border);
       border-radius: var(--radius);
       padding: 24px 16px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
     }
 
     #timer-display {
       font-family: 'DSEG7', 'Courier New', monospace;
-      font-weight: bold;
-      font-size: 18vw;
-      max-font-size: 86px;
-      letter-spacing: .04em;
-      line-height: 1;
-      color: var(--clr-text);
-      transition: color .3s;
+      font-weight: bold; font-size: 18vw;
+      letter-spacing: .04em; line-height: 1;
+      color: var(--clr-text); transition: color .3s;
     }
-
     @media (min-width: 480px) { #timer-display { font-size: 86px; } }
-
     #timer-display.warning { color: var(--clr-orange); }
     #timer-display.danger  { color: var(--clr-red); }
     #timer-display.zero    { color: var(--clr-red); }
     #timer-display.paused  { opacity: .5; }
 
-    #timer-status {
-      font-size: 11px;
-      letter-spacing: .2em;
+    #timer-status { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--clr-muted); }
+
+    /* ── MESSAGE BANNER ──────────────────────────────────────────── */
+    #message-banner {
+      display: none;
+      width: 100%; max-width: 480px;
+      background: rgba(255,51,51,.08);
+      border: 1px solid rgba(255,51,51,.3);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      gap: 10px;
+      align-items: center;
+    }
+    #message-banner.active { display: flex; }
+
+    #message-preview {
+      flex: 1;
+      font-size: 12px;
+      color: var(--clr-red);
+      letter-spacing: .05em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #btn-clear-message {
+      flex-shrink: 0;
+      background: transparent;
+      border: 1px solid rgba(255,51,51,.4);
+      color: var(--clr-red);
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      letter-spacing: .12em;
       text-transform: uppercase;
-      color: var(--clr-muted);
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
     }
+    #btn-clear-message:active { background: rgba(255,51,51,.15); }
 
-    /* ── MAIN CONTROLS ──────────────────────────────────────────── */
-    #controls {
-      width: 100%;
-      max-width: 480px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+    /* ── CONTROLS ────────────────────────────────────────────────── */
+    #controls { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 12px; }
 
-    /* Primary: start/pause */
     #btn-start-pause {
-      width: 100%;
-      padding: 20px;
-      font-size: 15px;
-      letter-spacing: .2em;
-      text-transform: uppercase;
+      width: 100%; padding: 20px;
+      font-size: 15px; letter-spacing: .2em; text-transform: uppercase;
       font-family: 'Courier New', monospace;
       border-radius: var(--radius);
-      border: 1.5px solid var(--clr-green);
-      color: var(--clr-green);
-      background: transparent;
-      cursor: pointer;
-      transition: background .15s;
+      border: 1.5px solid var(--clr-green); color: var(--clr-green);
+      background: transparent; cursor: pointer; transition: background .15s;
     }
     #btn-start-pause:active { background: rgba(0,255,136,.12); }
-    #btn-start-pause.paused-state {
-      border-color: var(--clr-orange);
-      color: var(--clr-orange);
-    }
+    #btn-start-pause.paused-state  { border-color: var(--clr-orange); color: var(--clr-orange); }
     #btn-start-pause.paused-state:active { background: rgba(255,170,0,.12); }
 
-    /* Secondary row */
-    #row-secondary {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
+    #row-secondary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
     .btn-secondary {
-      padding: 16px;
-      font-size: 12px;
-      letter-spacing: .15em;
-      text-transform: uppercase;
+      padding: 16px; font-size: 12px; letter-spacing: .15em; text-transform: uppercase;
       font-family: 'Courier New', monospace;
-      border-radius: var(--radius);
-      border: 1.5px solid var(--clr-border);
-      color: var(--clr-text);
-      background: transparent;
-      cursor: pointer;
+      border-radius: var(--radius); border: 1.5px solid var(--clr-border);
+      color: var(--clr-text); background: transparent; cursor: pointer;
       transition: background .15s, border-color .15s;
-      position: relative;
-      overflow: hidden;
+      position: relative; overflow: hidden;
     }
-    .btn-secondary:active { background: rgba(255,255,255,.06); }
-
     #btn-set-time { border-color: var(--clr-blue); color: var(--clr-blue); }
-    #btn-set-time:active { background: rgba(68,136,255,.12); }
-
-    #btn-reset { border-color: var(--clr-red); color: var(--clr-red); }
-    #btn-reset:active { background: rgba(255,51,51,.08); }
+    #btn-set-time:active  { background: rgba(68,136,255,.12); }
+    #btn-reset    { border-color: var(--clr-red);  color: var(--clr-red); }
+    #btn-reset:active     { background: rgba(255,51,51,.08); }
 
     #reset-progress {
-      position: absolute;
-      left: 0; top: 0; bottom: 0;
-      width: 0;
-      background: rgba(255,51,51,.3);
-      pointer-events: none;
+      position: absolute; left: 0; top: 0; bottom: 0; width: 0;
+      background: rgba(255,51,51,.3); pointer-events: none;
     }
 
-    /* Message button — full width, for future phase */
     #btn-message {
-      width: 100%;
-      padding: 14px;
-      font-size: 12px;
-      letter-spacing: .15em;
-      text-transform: uppercase;
+      width: 100%; padding: 14px;
+      font-size: 12px; letter-spacing: .15em; text-transform: uppercase;
       font-family: 'Courier New', monospace;
       border-radius: var(--radius);
-      border: 1.5px solid var(--clr-purple);
-      color: var(--clr-purple);
-      background: transparent;
-      cursor: pointer;
-      opacity: .35;
-      pointer-events: none; /* enabled in fase 6 */
+      border: 1.5px solid var(--clr-purple); color: var(--clr-purple);
+      background: transparent; cursor: pointer; transition: background .15s;
     }
+    #btn-message:active { background: rgba(204,136,255,.12); }
 
-    /* ── MODAL OVERLAY ──────────────────────────────────────────── */
+    /* ── MODALS ──────────────────────────────────────────────────── */
     .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
+      display: none; position: fixed; inset: 0;
       background: rgba(0,0,0,.85);
-      align-items: flex-end;
-      justify-content: center;
-      z-index: 20;
-      padding: 0 0 16px;
+      align-items: flex-end; justify-content: center;
+      z-index: 20; padding: 0 0 16px;
     }
-    .modal-overlay.open    { display: flex; }
-    .modal-overlay.visible { display: flex; }
+    .modal-overlay.open { display: flex; }
 
     .modal-sheet {
-      background: #1a1a1a;
-      border: 1px solid var(--clr-border);
+      background: #1a1a1a; border: 1px solid var(--clr-border);
       border-radius: 16px 16px 12px 12px;
       padding: 24px 20px 20px;
-      width: 100%;
-      max-width: 480px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
+      width: 100%; max-width: 480px;
+      display: flex; flex-direction: column; gap: 16px;
     }
 
     .modal-title {
-      font-size: 12px;
-      letter-spacing: .2em;
-      text-transform: uppercase;
-      color: var(--clr-muted);
-      text-align: center;
+      font-size: 12px; letter-spacing: .2em; text-transform: uppercase;
+      color: var(--clr-muted); text-align: center;
     }
 
-    /* Preset grid */
-    .presets {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-    }
+    /* time modal */
+    .presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 
     .btn-preset {
-      padding: 14px 0;
-      font-size: 13px;
-      letter-spacing: .1em;
+      padding: 14px 0; font-size: 13px; letter-spacing: .1em;
       font-family: 'Courier New', monospace;
-      border-radius: 8px;
-      border: 1.5px solid #1e3a5a;
-      color: var(--clr-blue);
-      background: transparent;
-      cursor: pointer;
+      border-radius: 8px; border: 1.5px solid #1e3a5a; color: var(--clr-blue);
+      background: transparent; cursor: pointer;
     }
     .btn-preset:active { background: rgba(68,136,255,.15); }
 
-    /* Manual input row */
-    .time-inputs {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
+    .time-inputs { display: flex; align-items: center; justify-content: center; gap: 8px; }
     .time-col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
     .time-col label { font-size: 10px; color: var(--clr-muted); letter-spacing: .15em; text-transform: uppercase; }
 
     .time-inputs input {
-      background: transparent;
-      border: none;
-      border-bottom: 2px solid var(--clr-border);
+      background: transparent; border: none; border-bottom: 2px solid var(--clr-border);
       color: var(--clr-text);
-      font-family: 'DSEG7', 'Courier New', monospace;
-      font-weight: bold;
-      font-size: 12vw;
-      width: 2.5ch;
-      text-align: center;
-      outline: none;
-      appearance: textfield;
-      -moz-appearance: textfield;
-      transition: border-color .2s;
+      font-family: 'DSEG7', 'Courier New', monospace; font-weight: bold;
+      font-size: 12vw; width: 2.5ch; text-align: center; outline: none;
+      appearance: textfield; -moz-appearance: textfield; transition: border-color .2s;
     }
-
     @media (min-width: 480px) { .time-inputs input { font-size: 56px; } }
-
     .time-inputs input::-webkit-outer-spin-button,
     .time-inputs input::-webkit-inner-spin-button { -webkit-appearance: none; }
     .time-inputs input:focus { border-color: var(--clr-blue); }
-
     .time-sep { font-size: 10vw; color: var(--clr-muted); align-self: flex-end; margin-bottom: 6px; }
     @media (min-width: 480px) { .time-sep { font-size: 48px; } }
 
-    /* Modal buttons */
-    .modal-actions { display: flex; gap: 10px; }
+    /* message modal */
+    .quick-msgs { display: flex; flex-wrap: wrap; gap: 8px; }
 
-    .btn-modal {
-      flex: 1;
-      padding: 16px;
-      font-size: 12px;
-      letter-spacing: .15em;
-      text-transform: uppercase;
+    .btn-qmsg {
+      padding: 10px 14px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
       font-family: 'Courier New', monospace;
-      border-radius: 8px;
-      cursor: pointer;
-      background: transparent;
+      border-radius: 6px; background: transparent; cursor: pointer; transition: all .15s;
     }
+    .btn-qmsg.red    { border: 1px solid #6a2a2a; color: var(--clr-red); }
+    .btn-qmsg.red:active    { background: rgba(255,51,51,.15); }
+    .btn-qmsg.yellow { border: 1px solid #5a4a00; color: var(--clr-orange); }
+    .btn-qmsg.yellow:active { background: rgba(255,170,0,.12); }
+    .btn-qmsg.green  { border: 1px solid #004a2a; color: var(--clr-green); }
+    .btn-qmsg.green:active  { background: rgba(0,255,136,.12); }
 
+    #inp-message {
+      background: transparent; border: 1px solid var(--clr-border); border-radius: 6px;
+      color: var(--clr-text); font-family: 'Courier New', monospace; font-size: 14px;
+      padding: 12px; outline: none; resize: none;
+      letter-spacing: .04em; transition: border-color .2s;
+      min-height: 60px; overflow: hidden; line-height: 1.5;
+    }
+    #inp-message:focus { border-color: var(--clr-purple); }
+
+    /* shared modal buttons */
+    .modal-actions { display: flex; gap: 10px; }
+    .btn-modal {
+      flex: 1; padding: 16px; font-size: 12px; letter-spacing: .15em; text-transform: uppercase;
+      font-family: 'Courier New', monospace;
+      border-radius: 8px; cursor: pointer; background: transparent;
+    }
     .btn-cancel  { border: 1.5px solid var(--clr-border); color: var(--clr-muted); }
     .btn-confirm { border: 1.5px solid var(--clr-green);  color: var(--clr-green); }
     .btn-confirm:active { background: rgba(0,255,136,.12); }
     .btn-cancel:active  { background: rgba(255,255,255,.05); }
+    .btn-apply   { border: 1.5px solid var(--clr-purple); color: var(--clr-purple); }
+    .btn-apply:active   { background: rgba(204,136,255,.12); }
   </style>
 </head>
 <body>
@@ -326,10 +271,16 @@
     <span id="display-count"></span>
   </div>
 
-  <!-- timer preview card -->
+  <!-- timer card -->
   <div id="timer-card">
     <div id="timer-display">--:--</div>
     <div id="timer-status">—</div>
+  </div>
+
+  <!-- active message banner -->
+  <div id="message-banner">
+    <span id="message-preview"></span>
+    <button id="btn-clear-message">Limpar</button>
   </div>
 
   <!-- controls -->
@@ -377,58 +328,87 @@
     </div>
   </div>
 
-  <script>
-    // ── utils ────────────────────────────────────────────────────────────────
+  <!-- modal: message -->
+  <div id="modal-message" class="modal-overlay">
+    <div class="modal-sheet">
+      <div class="modal-title">Mensagem</div>
+      <div class="quick-msgs">
+        <button class="btn-qmsg red"    data-msg="ACABOU">ACABOU</button>
+        <button class="btn-qmsg yellow" data-msg="+5 MIN">+5 MIN</button>
+        <button class="btn-qmsg yellow" data-msg="MAIS GRAVE">MAIS GRAVE</button>
+        <button class="btn-qmsg yellow" data-msg="MAIS AGUDO">MAIS AGUDO</button>
+        <button class="btn-qmsg yellow" data-msg="VOLUME ↑">VOLUME ↑</button>
+        <button class="btn-qmsg yellow" data-msg="VOLUME ↓">VOLUME ↓</button>
+        <button class="btn-qmsg green"  data-msg="OK ✓">OK ✓</button>
+      </div>
+      <textarea id="inp-message" rows="2" placeholder="Mensagem personalizada..."></textarea>
+      <div class="modal-actions">
+        <button class="btn-modal btn-cancel" id="btn-msg-cancel">Cancelar</button>
+        <button class="btn-modal btn-apply"  id="btn-msg-apply">Enviar</button>
+      </div>
+    </div>
+  </div>
 
-    const $  = id => document.getElementById(id);
+  <script>
+    // ── utils ─────────────────────────────────────────────────────────────────
+
+    const $   = id => document.getElementById(id);
     const pad = n => String(n).padStart(2, '0');
     const fmt = s => `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
 
-    // ── DOM refs ─────────────────────────────────────────────────────────────
+    // ── DOM refs ──────────────────────────────────────────────────────────────
 
-    const connEl      = $('connection');
-    const connLabel   = $('conn-label');
-    const displayCount = $('display-count');
-    const timerEl     = $('timer-display');
-    const statusEl    = $('timer-status');
-    const btnSP       = $('btn-start-pause');
-    const btnReset    = $('btn-reset');
-    const resetProg   = $('reset-progress');
-    const modalTime   = $('modal-time');
-    const inpMin      = $('inp-min');
-    const inpSec      = $('inp-sec');
+    const connEl        = $('connection');
+    const connLabel     = $('conn-label');
+    const displayCount  = $('display-count');
+    const timerEl       = $('timer-display');
+    const statusEl      = $('timer-status');
+    const messageBanner = $('message-banner');
+    const messagePreview= $('message-preview');
+    const btnSP         = $('btn-start-pause');
+    const btnReset      = $('btn-reset');
+    const resetProg     = $('reset-progress');
+    const modalTime     = $('modal-time');
+    const modalMessage  = $('modal-message');
+    const inpMin        = $('inp-min');
+    const inpSec        = $('inp-sec');
+    const inpMessage    = $('inp-message');
 
-    // ── state ────────────────────────────────────────────────────────────────
+    // ── state ─────────────────────────────────────────────────────────────────
 
     let currentState = null;
 
-    // ── render ───────────────────────────────────────────────────────────────
+    // ── render ────────────────────────────────────────────────────────────────
 
-    const STATUS_LABELS = {
-      stopped: 'Parado',
-      running: 'Rodando',
-      paused:  'Pausado',
-    };
+    const STATUS_LABELS = { stopped: 'Parado', running: 'Rodando', paused: 'Pausado' };
 
     function renderState(state) {
       currentState = state;
 
+      // timer card
       timerEl.textContent = fmt(state.remainingSeconds);
-
       ['warning', 'danger', 'zero', 'paused'].forEach(c => timerEl.classList.remove(c));
-      if (state.status === 'paused')      timerEl.classList.add('paused');
-      else if (state.alertLevel)          timerEl.classList.add(state.alertLevel);
+      if (state.status === 'paused')                        timerEl.classList.add('paused');
+      else if (state.alertLevel && state.alertLevel !== 'normal') timerEl.classList.add(state.alertLevel);
 
       statusEl.textContent = STATUS_LABELS[state.status] ?? state.status;
 
+      // start/pause button label
       const isRunning = state.status === 'running';
       const isPaused  = state.status === 'paused';
-
       btnSP.textContent = isRunning ? 'Pausar' : isPaused ? 'Retomar' : 'Iniciar';
       btnSP.classList.toggle('paused-state', isPaused);
+
+      // message banner
+      if (state.emergencyMessage) {
+        messagePreview.textContent = state.emergencyMessage;
+        messageBanner.classList.add('active');
+      } else {
+        messageBanner.classList.remove('active');
+      }
     }
 
-    // ── send command ─────────────────────────────────────────────────────────
+    // ── send command ──────────────────────────────────────────────────────────
 
     async function sendCommand(action, params = {}) {
       try {
@@ -437,10 +417,10 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action, ...params }),
         });
-      } catch { /* network error — WS indicator will show offline */ }
+      } catch { /* network — WS indicator shows offline */ }
     }
 
-    // ── button actions ───────────────────────────────────────────────────────
+    // ── timer controls ────────────────────────────────────────────────────────
 
     btnSP.addEventListener('click', () => {
       if (!currentState) return;
@@ -450,55 +430,60 @@
       sendCommand(action);
     });
 
-    // hold-to-reset (1 second)
     let holdTimer = null;
 
     function holdStart() {
       if (holdTimer) return;
       resetProg.style.transition = 'width 1s linear';
       resetProg.style.width = '100%';
-      holdTimer = setTimeout(() => {
-        sendCommand('RESET');
-        holdCancel(true);
-      }, 1000);
+      holdTimer = setTimeout(() => { sendCommand('RESET'); holdCancel(true); }, 1000);
     }
 
     function holdCancel(done = false) {
-      clearTimeout(holdTimer);
-      holdTimer = null;
-      if (done) {
-        setTimeout(() => { resetProg.style.transition = 'none'; resetProg.style.width = '0'; }, 200);
-      } else {
-        resetProg.style.transition = 'width .15s ease';
-        resetProg.style.width = '0';
-      }
+      clearTimeout(holdTimer); holdTimer = null;
+      if (done) { setTimeout(() => { resetProg.style.transition = 'none'; resetProg.style.width = '0'; }, 200); }
+      else       { resetProg.style.transition = 'width .15s ease'; resetProg.style.width = '0'; }
     }
 
     btnReset.addEventListener('pointerdown', holdStart);
     btnReset.addEventListener('pointerup',   () => holdTimer && holdCancel());
     btnReset.addEventListener('pointerleave',() => holdTimer && holdCancel());
 
-    // set time modal
-    $('btn-set-time').addEventListener('click', openModalTime);
-    $('btn-time-cancel').addEventListener('click',  () => closeModal(modalTime));
+    // ── time modal ────────────────────────────────────────────────────────────
+
+    function openTimeModal() {
+      const sec = currentState?.remainingSeconds ?? 0;
+      inpMin.value = pad(Math.floor(sec / 60));
+      inpSec.value = pad(sec % 60);
+      modalTime.classList.add('open');
+      setTimeout(() => { inpMin.focus(); inpMin.select(); }, 80);
+    }
+
+    function confirmTime() {
+      const m = Math.min(99, Math.max(0, parseInt(inpMin.value) || 0));
+      const s = Math.min(59, Math.max(0, parseInt(inpSec.value) || 0));
+      sendCommand('SET_TIME', { seconds: m * 60 + s });
+      closeModal(modalTime);
+    }
+
+    $('btn-set-time').addEventListener('click', openTimeModal);
+    $('btn-time-cancel').addEventListener('click', () => closeModal(modalTime));
     $('btn-time-confirm').addEventListener('click', confirmTime);
     modalTime.addEventListener('click', e => { if (e.target === modalTime) closeModal(modalTime); });
 
     document.querySelectorAll('.btn-preset').forEach(btn =>
       btn.addEventListener('click', () => {
-        const added = parseInt(btn.dataset.min) * 60;
+        const added   = parseInt(btn.dataset.min) * 60;
         const current = (parseInt(inpMin.value) || 0) * 60 + (parseInt(inpSec.value) || 0);
-        const total = current + added;
-        inpMin.value = pad(Math.min(99, Math.floor(total / 60)));
-        inpSec.value = pad(Math.min(59, total % 60));
+        const total   = current + added;
+        inpMin.value  = pad(Math.min(99, Math.floor(total / 60)));
+        inpSec.value  = pad(Math.min(59, total % 60));
       })
     );
 
     [inpMin, inpSec].forEach(inp => {
       const max = inp === inpMin ? 99 : 59;
-      inp.addEventListener('blur', () => {
-        inp.value = pad(Math.min(max, Math.max(0, parseInt(inp.value) || 0)));
-      });
+      inp.addEventListener('blur', () => { inp.value = pad(Math.min(max, Math.max(0, parseInt(inp.value) || 0))); });
       inp.addEventListener('wheel', e => {
         e.preventDefault();
         let v = (parseInt(inp.value) || 0) + (e.deltaY < 0 ? 1 : -1);
@@ -510,44 +495,51 @@
     inpMin.addEventListener('keydown', e => {
       if (e.key === 'Tab' || e.key === 'Enter') { e.preventDefault(); inpSec.focus(); inpSec.select(); }
     });
-    inpSec.addEventListener('keydown', e => {
-      if (e.key === 'Enter') confirmTime();
+    inpSec.addEventListener('keydown', e => { if (e.key === 'Enter') confirmTime(); });
+
+    // ── message modal ─────────────────────────────────────────────────────────
+
+    function applyMessage(text) {
+      if (!text.trim()) return;
+      sendCommand('SET_MESSAGE', { text });
+      closeModal(modalMessage);
+      inpMessage.value = '';
+    }
+
+    $('btn-message').addEventListener('click', () => {
+      inpMessage.value = '';
+      modalMessage.classList.add('open');
+      setTimeout(() => inpMessage.focus(), 80);
     });
 
-    // ── modal helpers ─────────────────────────────────────────────────────────
+    $('btn-msg-cancel').addEventListener('click', () => closeModal(modalMessage));
+    $('btn-msg-apply').addEventListener('click',  () => applyMessage(inpMessage.value));
+    modalMessage.addEventListener('click', e => { if (e.target === modalMessage) closeModal(modalMessage); });
 
-    function openModalTime() {
-      const sec = currentState?.remainingSeconds ?? 0;
-      inpMin.value = pad(Math.floor(sec / 60));
-      inpSec.value = pad(sec % 60);
-      modalTime.classList.add('open');
-      setTimeout(() => { inpMin.focus(); inpMin.select(); }, 80);
-    }
+    inpMessage.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && e.ctrlKey) applyMessage(inpMessage.value);
+    });
+    inpMessage.addEventListener('input', () => {
+      inpMessage.style.height = 'auto';
+      inpMessage.style.height = Math.max(60, inpMessage.scrollHeight) + 'px';
+    });
 
-    function closeModal(modal) {
-      modal.classList.remove('open');
-    }
+    document.querySelectorAll('.btn-qmsg').forEach(btn =>
+      btn.addEventListener('click', () => applyMessage(btn.dataset.msg))
+    );
 
-    function confirmTime() {
-      const m = Math.min(99, Math.max(0, parseInt(inpMin.value) || 0));
-      const s = Math.min(59, Math.max(0, parseInt(inpSec.value) || 0));
-      sendCommand('SET_TIME', { seconds: m * 60 + s });
-      closeModal(modalTime);
-    }
+    $('btn-clear-message').addEventListener('click', () => sendCommand('CLEAR_MESSAGE'));
 
-    // ── connection indicator ──────────────────────────────────────────────────
+    // ── modal helper ──────────────────────────────────────────────────────────
 
-    function setOnline() {
-      connEl.className = 'online';
-      connLabel.textContent = 'Online';
-    }
+    function closeModal(modal) { modal.classList.remove('open'); }
 
-    function setOffline() {
-      connEl.className = 'offline';
-      connLabel.textContent = 'Offline';
-    }
+    // ── connection ────────────────────────────────────────────────────────────
 
-    // ── WebSocket connection ──────────────────────────────────────────────────
+    function setOnline()  { connEl.className = 'online';  connLabel.textContent = 'Online'; }
+    function setOffline() { connEl.className = 'offline'; connLabel.textContent = 'Offline'; }
+
+    // ── WebSocket ─────────────────────────────────────────────────────────────
 
     let retryDelay = 2000;
     const MAX_DELAY = 30000;
@@ -555,10 +547,7 @@
     function connect() {
       const ws = new WebSocket(`ws://${location.host}`);
 
-      ws.onopen = () => {
-        setOnline();
-        retryDelay = 2000;
-      };
+      ws.onopen = () => { setOnline(); retryDelay = 2000; };
 
       ws.onmessage = ({ data }) => {
         try {
@@ -567,7 +556,7 @@
           if (state.wsConnections !== undefined) {
             displayCount.textContent = `${state.wsConnections} display${state.wsConnections !== 1 ? 's' : ''}`;
           }
-        } catch { /* malformed — ignore */ }
+        } catch { /* ignore */ }
       };
 
       ws.onclose = () => {
