@@ -12,12 +12,18 @@
  * @returns {{ broadcast: (state: object) => void, connectedCount: () => number }}
  */
 const { WebSocketServer, OPEN } = require('ws');
+const logger = require('./logger');
 
 function WsBroadcaster(httpServer, getCurrentState) {
   const wss = new WebSocketServer({ server: httpServer });
 
   wss.on('connection', (ws) => {
+    logger.info({ clients: wss.clients.size }, 'ws client connected');
     ws.send(JSON.stringify(getCurrentState()));
+
+    ws.on('close', () => {
+      logger.info({ clients: wss.clients.size }, 'ws client disconnected');
+    });
   });
 
   function broadcast(state) {
